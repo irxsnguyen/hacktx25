@@ -46,7 +46,7 @@ export default function AnalysisView() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-[145px]">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-sun-600 to-sun-800 bg-clip-text text-transparent">
@@ -76,7 +76,7 @@ export default function AnalysisView() {
           </div>
           <h3 className="text-2xl font-bold text-neutral-800 mb-3">No analyses yet</h3>
           <p className="text-neutral-600 mb-8 text-lg">Run your first solar potential analysis to get started.</p>
-          <Link to="/" className="btn-primary text-lg px-8 py-4">
+          <Link to="/map" className="btn-primary text-lg px-8 py-4">
             Start Analysis
           </Link>
         </div>
@@ -143,7 +143,7 @@ export default function AnalysisView() {
                     Analysis Results
                   </h2>
                   <Link
-                    to="/"
+                    to="/map"
                     className="btn-primary"
                     state={{ 
                       center: selectedAnalysis.center,
@@ -156,7 +156,7 @@ export default function AnalysisView() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  <div className="bg-sun-50 rounded-3xl p-6 border border-sun-200">
+                  <div className="bg-sun-50 rounded-xl p-6 border border-sun-200">
                     <h3 className="font-bold text-sun-800 mb-4 text-lg">Analysis Details</h3>
                     <div className="space-y-3 text-sm text-neutral-700">
                       <p className="flex items-center space-x-3">
@@ -174,7 +174,7 @@ export default function AnalysisView() {
                     </div>
                   </div>
                   
-                  <div className="bg-earth-50 rounded-3xl p-6 border border-earth-200">
+                  <div className="bg-earth-50 rounded-xl p-6 border border-earth-200">
                     <h3 className="font-bold text-earth-800 mb-4 text-lg">Summary</h3>
                     <div className="space-y-3 text-sm text-neutral-700">
                       <p className="flex items-center space-x-3">
@@ -199,7 +199,7 @@ export default function AnalysisView() {
                   </h3>
                   <div className="space-y-4">
                     {selectedAnalysis.results.map((result) => (
-                      <div key={result.rank} className="bg-white/90 backdrop-blur-sm border border-sun-200 rounded-3xl p-6 hover:shadow-warm transition-all duration-300">
+                      <div key={result.rank} className="bg-white/90 backdrop-blur-sm border border-sun-200 rounded-xl p-6 hover:shadow-warm transition-all duration-300">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center space-x-4">
                             <div className="w-12 h-12 bg-sun-gradient text-white rounded-full flex items-center justify-center font-bold text-lg shadow-warm">

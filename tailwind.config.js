@@ -109,7 +109,7 @@ export default {
         sans: ['Inter', 'Nunito', 'Poppins', 'system-ui', 'sans-serif'],
       },
       backgroundImage: {
-        'sun-gradient': 'linear-gradient(135deg, #FFFBF0 0%, #FFE4B3 50%, #FFB347 100%)',
+        'sun-gradient': 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 50%, #FFFFFF 100%)',
         'earth-gradient': 'linear-gradient(135deg, #F0F8F0 0%, #CCE6CC 50%, #7FB87F 100%)',
         'sky-gradient': 'linear-gradient(135deg, #F0F8FF 0%, #CCE6FF 50%, #80BFFF 100%)',
       },

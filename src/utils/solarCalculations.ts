@@ -1,4 +1,5 @@
 import { Coordinates, SolarPosition, IrradianceData, SolarCalculationParams } from '../types'
+import { BiasCorrectionEngine, BiasCorrectionResult } from '../lib/biasCorrection'
 
 /**
  * Solar position calculations using simplified solar position algorithm
@@ -260,9 +261,14 @@ export class SolarPotentialAnalyzer {
   /**
    * Analyze solar potential for a grid of points within radius
    * 
-   * Uses simple single-pass algorithm with fixed-size array for top 5
-   * Evaluates every candidate and maintains sorted top 5 by kWh/day
-   * Reports progress through different stages of analysis
+   * Uses bias-corrected ranking to eliminate geographic bias and rank by
+   * relative potential score (RPS) rather than absolute irradiance.
+   * 
+   * Key improvements:
+   * - Baseline-normalized scoring eliminates latitude bias
+   * - Local percentile ranking prevents "bottom hugging"
+   * - Bias correction accounts for model-climatology differences
+   * - Still exposes absolute kWh/day for transparency
    */
   static async analyzeSolarPotential(
     center: Coordinates,
@@ -271,40 +277,64 @@ export class SolarPotentialAnalyzer {
     onProgress?: (percentage: number, status: string, message: string) => void
   ): Promise<{ coordinates: Coordinates; score: number; kwhPerDay: number }[]> {
     // Stage 1: Grid Generation (10%)
-    onProgress?.(10, 'grid-generation', 'Generating hexagonal grid...')
+    onProgress?.(10, 'grid-generation', 'Generating candidate grid...')
     const gridPoints = this.generateGridPoints(center, radiusKm)
     
-    // Simple array to hold top 5 candidates
-    const top: Array<{ coordinates: Coordinates; score: number; kwhPerDay: number }> = []
-
-    // Stage 2: Single-pass evaluation (10% → 80%)
-    onProgress?.(40, 'irradiance-computation', 'Calculating solar potential...')
+    // Stage 2: Calculate raw POA for all candidates (10% → 50%)
+    onProgress?.(20, 'irradiance-computation', 'Calculating raw solar potential...')
     
+    const candidates: Array<{ location: Coordinates; rawPOA: number }> = []
     const totalPoints = gridPoints.length
     
     for (let i = 0; i < gridPoints.length; i++) {
       const point = gridPoints[i]
-      const score = await this.calculateSolarScore(point, urbanPenalty)
-      const kwhPerDay = this.scoreToKwh(score)
+      const rawPOA = await this.calculateRawPOA(point, urbanPenalty)
+      candidates.push({ location: point, rawPOA })
       
-      // Simple insertion logic for top 5
-      this.insertIntoTop(top, { coordinates: point, score, kwhPerDay })
-
-      // Update progress during computation (40% → 80%)
-      const progress = 40 + (i / totalPoints) * 40
+      // Update progress during computation (20% → 50%)
+      const progress = 20 + (i / totalPoints) * 30
       onProgress?.(Math.round(progress), 'irradiance-computation', `Processing ${i + 1} of ${totalPoints} locations...`)
     }
 
-    // Stage 3: Apply spacing constraint (80% → 100%)
-    onProgress?.(80, 'ranking', 'Applying spacing constraints...')
+    // Stage 3: Apply bias correction (50% → 80%)
+    onProgress?.(50, 'bias-correction', 'Applying bias correction and baseline normalization...')
     
-    // Apply simple spacing constraint to prevent clustering
-    const topResults = this.applySimpleSpacing(top, center)
+    const dayOfYear = SolarPositionCalculator.getDayOfYear(new Date())
+    const tilt = center.lat * 0.76 // Simple rule of thumb
+    const azimuth = center.lat >= 0 ? 180 : 0 // South in N hemisphere, North in S hemisphere
+    
+    // Process all candidates with bias correction
+    const biasResults = BiasCorrectionEngine.processAllCandidates(
+      candidates,
+      dayOfYear,
+      tilt,
+      azimuth
+    )
+    
+    onProgress?.(80, 'bias-correction', 'Bias correction complete!')
 
-    // Stage 4: Completion (100%)
+    // Stage 4: Rank by RPS and apply spacing (80% → 100%)
+    onProgress?.(80, 'ranking', 'Ranking by relative potential score...')
+    
+    // Sort by RPS (descending) and take top candidates
+    const sortedResults = biasResults
+      .sort((a, b) => b.relativePotentialScore - a.relativePotentialScore)
+      .slice(0, 20) // Take top 20 for spacing consideration
+    
+    // Apply spacing constraint to prevent clustering
+    const topResults = this.applySpacingToBiasResults(sortedResults, center)
+    
+    // Convert to expected format
+    const finalResults = topResults.map(result => ({
+      coordinates: result.location,
+      score: result.relativePotentialScore,
+      kwhPerDay: result.correctedPOA * 0.1 // Convert to kWh/day estimate
+    }))
+
+    // Stage 5: Completion (100%)
     onProgress?.(100, 'complete', 'Analysis complete!')
     
-    return topResults
+    return finalResults
   }
 
   private static generateGridPoints(center: Coordinates, radiusKm: number): Coordinates[] {
@@ -340,60 +370,6 @@ export class SolarPotentialAnalyzer {
   }
 
 
-  private static async calculateSolarScore(
-    coordinates: Coordinates,
-    urbanPenalty: boolean
-  ): Promise<number> {
-    const { lat, lng } = coordinates
-    const tilt = lat * 0.76 // Simple rule of thumb
-    const azimuth = lat >= 0 ? 180 : 0 // South in N hemisphere, North in S hemisphere
-    
-    // Use equinox for representative day
-    const date = new Date(2024, 2, 20) // March 20, 2024 (spring equinox)
-    
-    let totalEnergy = 0
-    const timeSteps = 24 * 12 // 5-minute intervals
-    
-    for (let i = 0; i < timeSteps; i++) {
-      const hour = i / 12
-      const currentDate = new Date(date)
-      currentDate.setHours(Math.floor(hour), (hour % 1) * 60, 0, 0)
-      
-      const solarPos = SolarPositionCalculator.calculateSolarPosition(lat, lng, currentDate)
-      
-      if (solarPos.elevation > 0) {
-        const params: SolarCalculationParams = {
-          latitude: lat,
-          longitude: lng,
-          date: currentDate,
-          tilt,
-          azimuth,
-          albedo: 0.2,
-          temperatureCoeff: 0.004,
-          panelEfficiency: 0.18
-        }
-        
-        const irradiance = IrradianceCalculator.calculateIrradiance(solarPos, params)
-        const poaIrradiance = IrradianceCalculator.calculatePOAIrradiance(irradiance, solarPos, params)
-        const energy = IrradianceCalculator.calculateDailyEnergy(poaIrradiance, params)
-        
-        totalEnergy += energy
-      }
-    }
-    
-    // Apply urban penalty if enabled
-    let finalScore = totalEnergy
-    if (urbanPenalty) {
-      const urbanFactor = this.calculateUrbanFactor(lat)
-      finalScore *= urbanFactor
-    }
-    
-    // Apply sky view factor (simplified)
-    const skyViewFactor = this.calculateSkyViewFactor(lat)
-    finalScore *= skyViewFactor
-    
-    return Math.max(0, finalScore)
-  }
 
   private static calculateUrbanFactor(lat: number): number {
     // Simplified urban penalty based on latitude
@@ -405,63 +381,6 @@ export class SolarPotentialAnalyzer {
     return Math.max(0.8, 1 - Math.abs(lat) / 90 * 0.2)
   }
 
-  private static scoreToKwh(score: number): number {
-    // Convert score to estimated kWh/day for 1m² panel
-    return score * 0.1 // Rough conversion factor
-  }
-
-
-  /**
-   * Simple insertion into top 5 array, maintaining sorted order by kWh/day
-   */
-  private static insertIntoTop(
-    top: Array<{ coordinates: Coordinates; score: number; kwhPerDay: number }>,
-    candidate: { coordinates: Coordinates; score: number; kwhPerDay: number }
-  ): void {
-    // If array is not full, just add the candidate
-    if (top.length < 5) {
-      top.push(candidate)
-      // Sort by kWh/day (descending)
-      top.sort((a, b) => b.kwhPerDay - a.kwhPerDay)
-      return
-    }
-    
-    // If array is full, check if this candidate is better than the worst
-    const worstKwh = top[4].kwhPerDay
-    if (candidate.kwhPerDay > worstKwh) {
-      // Replace the worst candidate
-      top[4] = candidate
-      // Sort by kWh/day (descending)
-      top.sort((a, b) => b.kwhPerDay - a.kwhPerDay)
-    }
-  }
-
-  /**
-   * Simple spacing constraint to prevent clustering
-   */
-  private static applySimpleSpacing(
-    top: Array<{ coordinates: Coordinates; score: number; kwhPerDay: number }>,
-    _center: Coordinates
-  ): Array<{ coordinates: Coordinates; score: number; kwhPerDay: number }> {
-    if (top.length <= 1) return top
-    
-    const result: Array<{ coordinates: Coordinates; score: number; kwhPerDay: number }> = []
-    const minSpacingKm = 0.5 // 500m minimum spacing
-    
-    for (const candidate of top) {
-      // Check if this candidate is far enough from already selected ones
-      const tooClose = result.some(selected => 
-        this.calculateDistance(candidate.coordinates, selected.coordinates) < minSpacingKm
-      )
-      
-      if (!tooClose) {
-        result.push(candidate)
-        if (result.length >= 5) break
-      }
-    }
-    
-    return result
-  }
 
   /**
    * Creates a seeded random number generator for deterministic results
@@ -531,6 +450,89 @@ export class SolarPotentialAnalyzer {
               Math.sin(dLng/2) * Math.sin(dLng/2)
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
     return R * c
+  }
+
+  /**
+   * Calculate raw POA for a single location (without bias correction)
+   */
+  private static async calculateRawPOA(
+    coordinates: Coordinates,
+    urbanPenalty: boolean
+  ): Promise<number> {
+    const { lat, lng } = coordinates
+    const tilt = lat * 0.76 // Simple rule of thumb
+    const azimuth = lat >= 0 ? 180 : 0 // South in N hemisphere, North in S hemisphere
+    
+    // Use equinox for representative day
+    const date = new Date(2024, 2, 20) // March 20, 2024 (spring equinox)
+    
+    let totalPOA = 0
+    const timeSteps = 24 * 12 // 5-minute intervals
+    
+    for (let i = 0; i < timeSteps; i++) {
+      const hour = i / 12
+      const currentDate = new Date(date)
+      currentDate.setHours(Math.floor(hour), (hour % 1) * 60, 0, 0)
+      
+      const solarPos = SolarPositionCalculator.calculateSolarPosition(lat, lng, currentDate)
+      
+      if (solarPos.elevation > 0) {
+        const params: SolarCalculationParams = {
+          latitude: lat,
+          longitude: lng,
+          date: currentDate,
+          tilt,
+          azimuth,
+          albedo: 0.2,
+          temperatureCoeff: 0.004,
+          panelEfficiency: 0.18
+        }
+        
+        const irradiance = IrradianceCalculator.calculateIrradiance(solarPos, params)
+        const poa = IrradianceCalculator.calculatePOAIrradiance(irradiance, solarPos, params)
+        
+        totalPOA += poa
+      }
+    }
+    
+    // Apply urban penalty if enabled
+    if (urbanPenalty) {
+      const urbanFactor = this.calculateUrbanFactor(lat)
+      totalPOA *= urbanFactor
+    }
+    
+    // Apply sky view factor
+    const skyViewFactor = this.calculateSkyViewFactor(lat)
+    totalPOA *= skyViewFactor
+    
+    return Math.max(0, totalPOA)
+  }
+
+  /**
+   * Apply spacing constraint to bias-corrected results
+   */
+  private static applySpacingToBiasResults(
+    results: BiasCorrectionResult[],
+    _center: Coordinates
+  ): BiasCorrectionResult[] {
+    if (results.length <= 1) return results
+    
+    const finalResults: BiasCorrectionResult[] = []
+    const minSpacingKm = 0.5 // 500m minimum spacing
+    
+    for (const candidate of results) {
+      // Check if this candidate is far enough from already selected ones
+      const tooClose = finalResults.some(selected => 
+        this.calculateDistance(candidate.location, selected.location) < minSpacingKm
+      )
+      
+      if (!tooClose) {
+        finalResults.push(candidate)
+        if (finalResults.length >= 5) break
+      }
+    }
+    
+    return finalResults
   }
 
   // ===== DIAGNOSTIC UTILITIES =====

@@ -244,7 +244,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                           className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
                         />
                         <label htmlFor="includeWater" className="text-xs text-neutral-600">
-                          Include water bodies
+                          Exclude water bodies
                         </label>
                       </div>
 
@@ -257,7 +257,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                           className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
                         />
                         <label htmlFor="includeSensitive" className="text-xs text-neutral-600">
-                          Include sensitive areas
+                          Exclude sensitive areas
                         </label>
                       </div>
                     </div>

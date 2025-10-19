@@ -44,6 +44,76 @@ describe('Exclusion Mask', () => {
     global.fetch = originalFetch
   })
 
+  it('should include water bodies in query when includeWater is true', async () => {
+    const center = { lat: 40.7128, lng: -74.0060 }
+    const radiusKm = 2
+    
+    // Mock successful API response with water body
+    const mockResponse = {
+      elements: [
+        {
+          type: 'way',
+          id: 123,
+          geometry: [
+            { lat: 40.7128, lon: -74.0060 },
+            { lat: 40.7129, lon: -74.0060 },
+            { lat: 40.7129, lon: -74.0059 },
+            { lat: 40.7128, lon: -74.0059 },
+            { lat: 40.7128, lon: -74.0060 }
+          ],
+          tags: { natural: 'water' }
+        }
+      ]
+    }
+    
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockResponse)
+    })
+    
+    const result = await ExclusionMask.isPointExcluded(
+      40.7128,
+      -74.0060,
+      center,
+      radiusKm,
+      { enabled: true, bufferMeters: 50, includeWater: true, includeSensitive: false }
+    )
+    
+    expect(result.isExcluded).toBe(true)
+    expect(result.polygonType).toBe('water')
+    
+    // Restore fetch
+    global.fetch = originalFetch
+  })
+
+  it('should not include water bodies in query when includeWater is false', async () => {
+    const center = { lat: 40.7128, lng: -74.0060 }
+    const radiusKm = 2
+    
+    // Mock API response with no elements (no water bodies fetched)
+    const mockResponse = { elements: [] }
+    
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(mockResponse)
+    })
+    
+    const result = await ExclusionMask.isPointExcluded(
+      40.7128,
+      -74.0060,
+      center,
+      radiusKm,
+      { enabled: true, bufferMeters: 50, includeWater: false, includeSensitive: false }
+    )
+    
+    expect(result.isExcluded).toBe(false)
+    
+    // Restore fetch
+    global.fetch = originalFetch
+  })
+
   it('should generate correct cache keys', () => {
     const center1 = { lat: 40.7128, lng: -74.0060 }
     const center2 = { lat: 40.7129, lng: -74.0061 }

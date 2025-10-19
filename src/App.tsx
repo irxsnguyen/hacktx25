@@ -1,16 +1,13 @@
 import { Routes, Route } from 'react-router-dom'
-import MapView from './pages/MapView'
-import AnalysisView from './pages/AnalysisView'
-import Layout from './components/Layout'
+import { LandingPage } from './pages/LandingPage'
+import { MapPage } from './pages/MapPage'
 
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<MapView />} />
-        <Route path="/analysis" element={<AnalysisView />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/map" element={<MapPage />} />
+    </Routes>
   )
 }
 

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+@import 'leaflet/dist/leaflet.css';
 
 @tailwind base;
 @tailwind components;
@@ -6,26 +7,41 @@
 
 @layer base {
   html {
-    font-family: 'Inter', 'Nunito', 'Poppins', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
   
   body {
-    @apply bg-sun-gradient text-neutral-700;
-    background-attachment: fixed;
+    @apply text-stone-900;
   }
 }
 
 @layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-stone-200 p-6;
+  }
+  
+  .btn {
+    @apply px-6 py-3 rounded-2xl font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 transform hover:scale-105;
+  }
+  
   .btn-primary {
-    @apply bg-sun-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-sun-600 hover:shadow-warm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sun-400 focus:ring-offset-2 transform hover:scale-105;
+    @apply btn bg-sun-500 text-white hover:bg-sun-600 focus:ring-sun-400;
   }
   
   .btn-secondary {
-    @apply bg-earth-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-earth-600 hover:shadow-earth transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-earth-400 focus:ring-offset-2 transform hover:scale-105;
+    @apply btn bg-earth-500 text-white hover:bg-earth-600 focus:ring-earth-400;
   }
   
-  .btn-accent {
-    @apply bg-sky-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-sky-600 hover:shadow-sky transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transform hover:scale-105;
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    @apply appearance-none w-5 h-5 bg-sun-500 rounded-full cursor-pointer;
+  }
+  
+  .slider::-moz-range-thumb {
+    @apply w-5 h-5 bg-sun-500 rounded-full cursor-pointer border-0;
   }
   
   .input-field {
@@ -33,11 +49,11 @@
   }
   
   .card {
-    @apply bg-white/90 backdrop-blur-sm rounded-3xl shadow-soft p-6 border border-white/20 hover:shadow-medium transition-all duration-300;
+    @apply bg-white/90 backdrop-blur-sm rounded-3xl shadow-sm p-6 border border-white/20 hover:shadow-md transition-all duration-300;
   }
   
   .sidebar {
-    @apply bg-white/95 backdrop-blur-md shadow-warm border-r border-sun-200;
+    @apply bg-white/95 backdrop-blur-md shadow-lg border-r border-sun-200;
   }
   
   .sun-glow {
@@ -45,10 +61,21 @@
   }
   
   .earth-glow {
-    @apply shadow-earth;
+    @apply shadow-lg;
   }
   
   .sky-glow {
-    @apply shadow-sky;
+    @apply shadow-lg;
+  }
+  
+  /* Leaflet map fixes */
+  .leaflet-container {
+    height: 100% !important;
+    width: 100% !important;
+  }
+  
+  .leaflet-map-pane {
+    height: 100% !important;
+    width: 100% !important;
   }
 }

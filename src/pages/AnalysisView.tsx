@@ -23,14 +23,26 @@ export default function AnalysisView() {
     }
   }
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date)
+  const formatDate = (date: Date | string) => {
+    try {
+      // Convert string to Date if needed
+      const dateObj = typeof date === 'string' ? new Date(date) : date
+      
+      // Check if date is valid
+      if (!dateObj || isNaN(dateObj.getTime())) {
+        return 'Invalid date'
+      }
+      return new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(dateObj)
+    } catch (error) {
+      console.error('Date formatting error:', error)
+      return 'Invalid date'
+    }
   }
 
   return (

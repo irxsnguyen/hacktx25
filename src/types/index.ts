@@ -67,8 +67,14 @@ export interface MapState {
   isPickingLocation: boolean
 }
 
+export interface AnalysisProgress {
+  percentage: number
+  status: 'idle' | 'grid-generation' | 'irradiance-computation' | 'ranking' | 'complete'
+  message: string
+}
+
 export interface UIState {
   sidebarCollapsed: boolean
-  analysisProgress: number
+  analysisProgress: AnalysisProgress
   currentAnalysis: SolarAnalysis | null
 }

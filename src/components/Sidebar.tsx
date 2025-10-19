@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useUIStore } from '../store/useUIStore'
 import { useDebounce } from '../hooks/useDebounce'
 import { AnalysisInputs } from '../types'
+import AnalysisStatusBar from './AnalysisStatusBar'
 
 interface SidebarProps {
   onAnalyze: (inputs: AnalysisInputs) => void
@@ -21,6 +22,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
     inputUrbanPenalty,
     isPickingLocation,
     validation,
+    analysisProgress,
     setInputLatitude,
     setInputLongitude,
     setInputRadius,
@@ -215,20 +217,14 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
             </button>
           </div>
 
-          {/* Progress */}
-          {isAnalyzing && (
-            <div className="mb-6">
-              <div className="flex justify-between text-sm text-neutral-600 mb-2">
-                <span>Progress</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <div className="w-full bg-neutral-200 rounded-full h-3 overflow-hidden">
-                <div
-                  className="bg-sun-gradient h-3 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
+          {/* Analysis Status Bar */}
+          {analysisProgress && (
+            <AnalysisStatusBar
+              percentage={analysisProgress.percentage}
+              status={analysisProgress.status}
+              message={analysisProgress.message}
+              className="mb-6"
+            />
           )}
 
           {/* Results */}

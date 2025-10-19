@@ -7,7 +7,12 @@ import Map from '../components/Map'
 import Sidebar from '../components/Sidebar'
 
 export default function MapView() {
-  const { analysisProgress, setAnalysisProgress, setCurrentAnalysis, isPickingLocation } = useUIStore()
+  const { 
+    setCurrentAnalysis, 
+    isPickingLocation,
+    setAnalysisStatus,
+    resetAnalysisProgress
+  } = useUIStore()
   const { addAnalysis } = useAnalysisStore()
   
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -20,31 +25,19 @@ export default function MapView() {
 
   const handleAnalyze = useCallback(async (inputs: AnalysisInputs) => {
     setIsAnalyzing(true)
-    setAnalysisProgress(0)
     setCurrentResults([])
+    resetAnalysisProgress()
 
     try {
-      // Simulate progress updates
-      let currentProgress = 0
-      const progressInterval = setInterval(() => {
-        currentProgress += Math.random() * 10
-        if (currentProgress >= 90) {
-          clearInterval(progressInterval)
-          setAnalysisProgress(90)
-        } else {
-          setAnalysisProgress(currentProgress)
-        }
-      }, 200)
-
-      // Run solar analysis
+      // Run solar analysis with progress tracking
       const results = await SolarPotentialAnalyzer.analyzeSolarPotential(
         { lat: inputs.latitude, lng: inputs.longitude },
         inputs.radius,
-        inputs.urbanPenalty
+        inputs.urbanPenalty,
+        (percentage, status, message) => {
+          setAnalysisStatus(status as any, message, percentage)
+        }
       )
-
-      clearInterval(progressInterval)
-      setAnalysisProgress(100)
 
       // Format results with ranks
       const rankedResults = results.map((result, index) => ({
@@ -76,16 +69,17 @@ export default function MapView() {
 
     } catch (error) {
       console.error('Analysis failed:', error)
+      setAnalysisStatus('idle', 'Analysis failed', 0)
     } finally {
       setIsAnalyzing(false)
     }
-  }, [setAnalysisProgress, setCurrentAnalysis, addAnalysis])
+  }, [setAnalysisStatus, setCurrentAnalysis, addAnalysis, resetAnalysisProgress])
 
   const handleClear = useCallback(() => {
     setCurrentResults([])
-    setAnalysisProgress(0)
+    resetAnalysisProgress()
     setCurrentAnalysis(null)
-  }, [setAnalysisProgress, setCurrentAnalysis])
+  }, [resetAnalysisProgress, setCurrentAnalysis])
 
   return (
     <div className="flex h-screen">
@@ -93,7 +87,7 @@ export default function MapView() {
         onAnalyze={handleAnalyze}
         onClear={handleClear}
         isAnalyzing={isAnalyzing}
-        progress={analysisProgress}
+        progress={0}
         results={currentResults}
       />
       

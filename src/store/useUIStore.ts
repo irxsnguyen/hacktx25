@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { UIState, SolarAnalysis, Coordinates } from '../types'
+import { UIState, SolarAnalysis, Coordinates, AnalysisProgress } from '../types'
 
 interface InputValidation {
   latitude: { isValid: boolean; error?: string }
@@ -13,21 +13,27 @@ interface UIStore extends UIState {
   mapZoom: number
   radiusKm: number
   isPickingLocation: boolean
-  
+
   // Input state
   inputLatitude: number
   inputLongitude: number
   inputRadius: number
   inputUrbanPenalty: boolean
-  
+
   // Validation state
   validation: InputValidation
-  
+
+  // Analysis progress state (overrides the number from UIState)
+  analysisProgress: AnalysisProgress
+
   // Actions
   setSidebarCollapsed: (collapsed: boolean) => void
-  setAnalysisProgress: (progress: number) => void
   setCurrentAnalysis: (analysis: SolarAnalysis | null) => void
   resetAnalysis: () => void
+
+  // Analysis progress actions
+  setAnalysisStatus: (status: AnalysisProgress['status'], message: string, percentage: number) => void
+  resetAnalysisProgress: () => void
   
   // Map actions
   setMapCenter: (center: Coordinates) => void
@@ -71,40 +77,61 @@ const validateRadius = (value: number): { isValid: boolean; error?: string } => 
   return { isValid: true }
 }
 
-export const useUIStore = create<UIStore>((set, get) => ({
-  // Initial state
-  sidebarCollapsed: false,
-  analysisProgress: 0,
-  currentAnalysis: null,
+        export const useUIStore = create<UIStore>((set, get) => ({
+          // Initial state
+          sidebarCollapsed: false,
+          currentAnalysis: null,
+
+          // Map state
+          mapCenter: { lat: 30.2672, lng: -97.7431 },
+          mapZoom: 13,
+          radiusKm: 5,
+          isPickingLocation: false,
+
+          // Input state
+          inputLatitude: 30.2672,
+          inputLongitude: -97.7431,
+          inputRadius: 5,
+          inputUrbanPenalty: false,
+
+          // Validation state
+          validation: {
+            latitude: { isValid: true },
+            longitude: { isValid: true },
+            radius: { isValid: true }
+          },
+
+          // Analysis progress state
+          analysisProgress: {
+            percentage: 0,
+            status: 'idle',
+            message: 'Ready'
+          },
   
-  // Map state
-  mapCenter: { lat: 30.2672, lng: -97.7431 },
-  mapZoom: 13,
-  radiusKm: 5,
-  isPickingLocation: false,
-  
-  // Input state
-  inputLatitude: 30.2672,
-  inputLongitude: -97.7431,
-  inputRadius: 5,
-  inputUrbanPenalty: false,
-  
-  // Validation state
-  validation: {
-    latitude: { isValid: true },
-    longitude: { isValid: true },
-    radius: { isValid: true }
-  },
-  
-  // Basic actions
-  setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
-  setAnalysisProgress: (analysisProgress) => set({ analysisProgress }),
-  setCurrentAnalysis: (currentAnalysis) => set({ currentAnalysis }),
-  
-  resetAnalysis: () => set({ 
-    analysisProgress: 0, 
-    currentAnalysis: null 
-  }),
+          // Basic actions
+          setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+          setCurrentAnalysis: (currentAnalysis) => set({ currentAnalysis }),
+
+          resetAnalysis: () => set({
+            currentAnalysis: null
+          }),
+
+          // Analysis progress actions
+          setAnalysisStatus: (status, message, percentage) => set({
+            analysisProgress: {
+              percentage,
+              status,
+              message
+            }
+          }),
+
+          resetAnalysisProgress: () => set({
+            analysisProgress: {
+              percentage: 0,
+              status: 'idle',
+              message: 'Ready'
+            }
+          }),
   
   // Map actions
   setMapCenter: (mapCenter) => set({ mapCenter }),

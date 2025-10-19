@@ -1,5 +1,6 @@
 import { Coordinates, SolarPosition, IrradianceData, SolarCalculationParams } from '../types'
 import { AnalysisEngine, SolarCandidate } from '../lib/analysisEngine'
+import { MinHeap, HeapItem } from '../lib/minHeap'
 
 /**
  * Solar position calculations using simplified solar position algorithm
@@ -209,29 +210,60 @@ export class SolarPotentialAnalyzer {
   /**
    * Analyze solar potential for a grid of points within radius
    * 
-   * Uses the new AnalysisEngine for deterministic, merit-based ranking
+   * Uses streaming top-K approach with MinHeap for efficient memory usage
+   * Only keeps the best 5 candidates in memory at any time
+   * Reports progress through different stages of analysis
    */
   static async analyzeSolarPotential(
     center: Coordinates,
     radiusKm: number,
-    urbanPenalty: boolean = false
+    urbanPenalty: boolean = false,
+    onProgress?: (percentage: number, status: string, message: string) => void
   ): Promise<{ coordinates: Coordinates; score: number; kwhPerDay: number }[]> {
+    // Stage 1: Grid Generation (10%)
+    onProgress?.(10, 'grid-generation', 'Generating hexagonal grid...')
     const gridPoints = this.generateGridPoints(center, radiusKm)
-    const candidates: SolarCandidate[] = []
+    
+    // Use MinHeap for streaming top-K selection (keeps only best 5)
+    const topKHeap = new MinHeap(5)
 
-    // Calculate scores for all grid points
-    for (const point of gridPoints) {
+    // Stage 2: Streaming Irradiance Computation (10% → 80%)
+    onProgress?.(40, 'irradiance-computation', 'Calculating solar potential...')
+    
+    const totalPoints = gridPoints.length
+    for (let i = 0; i < gridPoints.length; i++) {
+      const point = gridPoints[i]
       const score = await this.calculateSolarScore(point, urbanPenalty)
       const kwhPerDay = this.scoreToKwh(score)
       
-      candidates.push({
-        coordinates: point,
-        score,
-        kwhPerDay
-      })
+      // Only add to heap if it's better than the worst candidate we have
+      // or if we don't have 5 candidates yet
+      if (!topKHeap.isFull() || score > topKHeap.getMinScore()) {
+        const heapItem: HeapItem = {
+          score,
+          kwhPerDay,
+          coordinates: point
+        }
+        topKHeap.push(heapItem)
+      }
+
+      // Update progress during computation (40% → 80%)
+      const progress = 40 + (i / totalPoints) * 40
+      onProgress?.(Math.round(progress), 'irradiance-computation', `Processing ${i + 1} of ${totalPoints} locations...`)
     }
 
-    // Use the new analysis engine for proper ranking
+    // Stage 3: Convert heap to candidates and apply spatial filtering (80% → 100%)
+    onProgress?.(80, 'ranking', 'Applying spatial filtering to top results...')
+    
+    // Convert heap items to SolarCandidate format
+    const heapItems = topKHeap.toArray()
+    const candidates: SolarCandidate[] = heapItems.map(item => ({
+      coordinates: item.coordinates,
+      score: item.score,
+      kwhPerDay: item.kwhPerDay
+    }))
+    
+    // Apply spatial filtering to ensure minimum spacing
     const topResults = AnalysisEngine.rankTopLocations(candidates, {
       maxResults: 5,
       minSpacingMeters: 100,
@@ -239,6 +271,9 @@ export class SolarPotentialAnalyzer {
       minKwhPerDay: 0
     })
 
+    // Stage 4: Validation and Completion (100%)
+    onProgress?.(100, 'complete', 'Analysis complete!')
+    
     // Validate results for quality assurance
     const validation = AnalysisEngine.validateResults(topResults)
     if (!validation.isValid) {
@@ -252,17 +287,85 @@ export class SolarPotentialAnalyzer {
   }
 
   private static generateGridPoints(center: Coordinates, radiusKm: number): Coordinates[] {
+    return this.generateHexagonalGrid(center, radiusKm)
+  }
+
+  /**
+   * Generates a hexagonal grid of sample points within the search radius
+   * 
+   * Benefits of hexagonal grid:
+   * - More uniform point distribution than rectangular grid
+   * - Optimal packing density for circular areas
+   * - Scales properly with radius (more points for larger areas)
+   * - No directional bias (unlike rectangular grid)
+   */
+  private static generateHexagonalGrid(center: Coordinates, radiusKm: number): Coordinates[] {
     const points: Coordinates[] = []
-    const stepSize = Math.max(0.15, radiusKm / 20) // ~150m minimum step
     
-    // Generate grid within radius
-    for (let lat = center.lat - radiusKm / 111; lat <= center.lat + radiusKm / 111; lat += stepSize / 111) {
-      for (let lng = center.lng - radiusKm / (111 * Math.cos(center.lat * Math.PI / 180)); 
-           lng <= center.lng + radiusKm / (111 * Math.cos(center.lat * Math.PI / 180)); 
-           lng += stepSize / (111 * Math.cos(center.lat * Math.PI / 180))) {
+    // Calculate optimal hex spacing based on radius
+    // Target: ~400-1200 points for typical radii (1-10km)
+    const targetPointCount = Math.min(1200, Math.max(400, Math.round(radiusKm * radiusKm * 50)))
+    const hexSpacing = this.calculateHexSpacing(radiusKm, targetPointCount)
+    
+    // Generate hexagonal lattice points
+    const latticePoints = this.generateHexLattice(center, hexSpacing, radiusKm)
+    
+    // Filter points within the search circle
+    for (const point of latticePoints) {
+      const distance = this.calculateDistance(center, point)
+      if (distance <= radiusKm) {
+        points.push(point)
+      }
+    }
+    
+    return points
+  }
+
+  /**
+   * Calculates optimal hexagonal spacing based on radius and target point count
+   */
+  private static calculateHexSpacing(radiusKm: number, targetPointCount: number): number {
+    // For hexagonal packing, area coverage is: A = (3√3/2) * s² * n
+    // where s is spacing and n is number of points
+    // Solve for s: s = √(2A / (3√3 * n))
+    const area = Math.PI * radiusKm * radiusKm
+    const hexSpacing = Math.sqrt(2 * area / (3 * Math.sqrt(3) * targetPointCount))
+    
+    // Ensure minimum spacing of 100m and maximum of 500m
+    return Math.max(0.1, Math.min(0.5, hexSpacing))
+  }
+
+  /**
+   * Generates hexagonal lattice points around the center
+   */
+  private static generateHexLattice(center: Coordinates, spacing: number, radiusKm: number): Coordinates[] {
+    const points: Coordinates[] = []
+    const latKm = 111 // km per degree latitude
+    const lngKm = 111 * Math.cos(center.lat * Math.PI / 180) // km per degree longitude at this latitude
+    
+    // Calculate bounds for hexagonal grid
+    const maxRadius = radiusKm + spacing // Add buffer for edge points
+    const latRange = maxRadius / latKm
+    const lngRange = maxRadius / lngKm
+    
+    // Generate hexagonal lattice using offset coordinates
+    const hexRadius = Math.ceil(maxRadius / spacing) + 1
+    
+    for (let q = -hexRadius; q <= hexRadius; q++) {
+      const r1 = Math.max(-hexRadius, -q - hexRadius)
+      const r2 = Math.min(hexRadius, -q + hexRadius)
+      
+      for (let r = r1; r <= r2; r++) {
+        // Convert hexagonal coordinates to Cartesian
+        const x = spacing * (3/2 * q)
+        const y = spacing * (Math.sqrt(3)/2 * q + Math.sqrt(3) * r)
         
-        const distance = this.calculateDistance(center, { lat, lng })
-        if (distance <= radiusKm) {
+        // Convert to lat/lng
+        const lat = center.lat + y / latKm
+        const lng = center.lng + x / lngKm
+        
+        // Check if point is within reasonable bounds
+        if (Math.abs(lat - center.lat) <= latRange && Math.abs(lng - center.lng) <= lngRange) {
           points.push({ lat, lng })
         }
       }

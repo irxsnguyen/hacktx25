@@ -11,7 +11,8 @@ export default function MapView() {
     setCurrentAnalysis, 
     isPickingLocation,
     setAnalysisStatus,
-    resetAnalysisProgress
+    resetAnalysisProgress,
+    exclusionConfig
   } = useUIStore()
   const { addAnalysis } = useAnalysisStore()
   
@@ -34,7 +35,10 @@ export default function MapView() {
         { lat: inputs.latitude, lng: inputs.longitude },
         inputs.radius,
         inputs.urbanPenalty,
-        (percentage, status, message) => {
+        true, // includeLandPrices
+        true, // rankByCostEfficiency
+        exclusionConfig, // exclusion config
+        (percentage: number, status: string, message: string) => {
           setAnalysisStatus(status as any, message, percentage)
         }
       )
@@ -44,7 +48,9 @@ export default function MapView() {
         rank: index + 1,
         coordinates: result.coordinates,
         score: result.score,
-        kwhPerDay: result.kwhPerDay
+        kwhPerDay: result.kwhPerDay,
+        landPrice: result.landPrice,
+        powerPerCost: result.powerPerCost
       }))
 
       setCurrentResults(rankedResults)
@@ -58,7 +64,9 @@ export default function MapView() {
           rank: r.rank,
           coordinates: r.coordinates,
           score: r.score,
-          estimatedKwhPerDay: r.kwhPerDay
+          estimatedKwhPerDay: r.kwhPerDay,
+          landPrice: r.landPrice,
+          powerPerCost: r.powerPerCost
         })),
         createdAt: new Date(),
         completedAt: new Date()

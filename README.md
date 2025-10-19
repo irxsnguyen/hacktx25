@@ -74,7 +74,7 @@ Each result includes:
 - **Rank**: Position in the top 5
 - **Coordinates**: Exact latitude/longitude
 - **Score**: Solar potential score (0-100)
-- **Estimated Wh/day**: Expected daily energy production
+- **Estimated kWh/day**: Expected daily energy production
 
 ### Saved Analyses
 

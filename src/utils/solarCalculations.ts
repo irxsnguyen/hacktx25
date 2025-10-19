@@ -1,5 +1,7 @@
 import { Coordinates, SolarPosition, IrradianceData, SolarCalculationParams } from '../types'
 import { BiasCorrectionEngine, BiasCorrectionResult } from '../lib/biasCorrection'
+import { LandPriceEstimator, LandPriceResult } from '../lib/landPriceEstimator'
+import { ExclusionMask } from '../lib/exclusionMask'
 
 /**
  * Solar position calculations using simplified solar position algorithm
@@ -264,21 +266,64 @@ export class SolarPotentialAnalyzer {
    * Uses bias-corrected ranking to eliminate geographic bias and rank by
    * relative potential score (RPS) rather than absolute irradiance.
    * 
+   * Now includes land price integration for cost-adjusted analysis:
+   * - Attaches land price data to each evaluated location
+   * - Calculates cost-adjusted metrics (solar output per dollar)
+   * - Enables ranking by cost efficiency rather than just solar potential
+   * 
    * Key improvements:
    * - Baseline-normalized scoring eliminates latitude bias
    * - Local percentile ranking prevents "bottom hugging"
    * - Bias correction accounts for model-climatology differences
+   * - Land price integration enables economic analysis
    * - Still exposes absolute kWh/day for transparency
    */
   static async analyzeSolarPotential(
     center: Coordinates,
     radiusKm: number,
     urbanPenalty: boolean = false,
+    includeLandPrices: boolean = true,
+    rankByCostEfficiency: boolean = true,
+    exclusionConfig?: { enabled: boolean; bufferMeters: number; includeWater: boolean; includeSensitive: boolean },
     onProgress?: (percentage: number, status: string, message: string) => void
-  ): Promise<{ coordinates: Coordinates; score: number; kwhPerDay: number }[]> {
+  ): Promise<{ coordinates: Coordinates; score: number; kwhPerDay: number; landPrice?: number; powerPerCost?: number }[]> {
     // Stage 1: Grid Generation (10%)
     onProgress?.(10, 'grid-generation', 'Generating candidate grid...')
-    const gridPoints = this.generateGridPoints(center, radiusKm)
+    let gridPoints = this.generateGridPoints(center, radiusKm)
+    
+    // Apply exclusion filtering if enabled
+    if (exclusionConfig?.enabled) {
+      onProgress?.(15, 'grid-generation', 'Filtering excluded areas...')
+      const filteredPoints: Coordinates[] = []
+      let excludedCount = 0
+      
+      for (const point of gridPoints) {
+        const exclusionResult = await ExclusionMask.isPointExcluded(
+          point.lat,
+          point.lng,
+          center,
+          radiusKm,
+          {
+            enabled: true,
+            bufferMeters: exclusionConfig.bufferMeters,
+            tagSetVersion: '1.0',
+            cacheExpiryDays: 7,
+            apiTimeout: 10000,
+            includeWater: exclusionConfig.includeWater,
+            includeSensitive: exclusionConfig.includeSensitive
+          }
+        )
+        
+        if (!exclusionResult.isExcluded) {
+          filteredPoints.push(point)
+        } else {
+          excludedCount++
+        }
+      }
+      
+      gridPoints = filteredPoints
+      console.log(`Exclusion filtering: ${excludedCount} points excluded (${Math.round(excludedCount / (gridPoints.length + excludedCount) * 100)}%)`)
+    }
     
     // Stage 2: Calculate raw POA for all candidates (10% → 50%)
     onProgress?.(20, 'irradiance-computation', 'Calculating raw solar potential...')
@@ -313,13 +358,53 @@ export class SolarPotentialAnalyzer {
     
     onProgress?.(80, 'bias-correction', 'Bias correction complete!')
 
-    // Stage 4: Rank by RPS and apply spacing (80% → 100%)
-    onProgress?.(80, 'ranking', 'Ranking by relative potential score...')
+    // Stage 4: Land price integration (80% → 90%)
+    let landPriceResults: LandPriceResult[] = []
+    if (includeLandPrices) {
+      onProgress?.(80, 'land-prices', 'Fetching land price data...')
+      
+      // Get land prices for all candidates
+      const locations = biasResults.map(result => result.location)
+      
+      try {
+        landPriceResults = await LandPriceEstimator.getLandPrices(locations)
+        onProgress?.(90, 'land-prices', 'Land price data integrated!')
+      } catch (error) {
+        console.warn('Land price lookup failed, continuing without cost data:', error)
+        onProgress?.(90, 'land-prices', 'Land price lookup failed, using solar-only ranking')
+      }
+    }
+
+    // Stage 5: Calculate power-per-cost scores and rank (90% → 100%)
+    onProgress?.(90, 'ranking', 'Calculating power-per-cost scores and ranking...')
     
-    // Sort by RPS (descending) and take top candidates
-    const sortedResults = biasResults
-      .sort((a, b) => b.relativePotentialScore - a.relativePotentialScore)
-      .slice(0, 20) // Take top 20 for spacing consideration
+    // Calculate power-per-cost for each candidate
+    const candidatesWithCosts = biasResults.map(result => {
+      const landPriceData = landPriceResults.find(lp => 
+        lp.location.lat === result.location.lat && 
+        lp.location.lng === result.location.lng
+      )
+      
+      const kwhPerDay = result.correctedPOA * 0.1 // Convert to kWh/day estimate
+      const landPrice = landPriceData?.pricePerSquareMeter || 1.0 // Default to $1/m²
+      const powerPerCost = LandPriceEstimator.calculatePowerPerCost(kwhPerDay, landPrice)
+      
+      return {
+        ...result,
+        kwhPerDay,
+        landPrice,
+        powerPerCost
+      }
+    })
+    
+    // Sort by power-per-cost if enabled, otherwise by RPS
+    const sortedResults = rankByCostEfficiency && includeLandPrices
+      ? candidatesWithCosts
+          .sort((a, b) => b.powerPerCost - a.powerPerCost)
+          .slice(0, 20) // Take top 20 for spacing consideration
+      : candidatesWithCosts
+          .sort((a, b) => b.relativePotentialScore - a.relativePotentialScore)
+          .slice(0, 20)
     
     // Apply spacing constraint to prevent clustering
     const topResults = this.applySpacingToBiasResults(sortedResults, center)
@@ -328,10 +413,12 @@ export class SolarPotentialAnalyzer {
     const finalResults = topResults.map(result => ({
       coordinates: result.location,
       score: result.relativePotentialScore,
-      kwhPerDay: result.correctedPOA * 0.1 // Convert to kWh/day estimate
+      kwhPerDay: result.kwhPerDay || 0,
+      landPrice: result.landPrice,
+      powerPerCost: result.powerPerCost
     }))
 
-    // Stage 5: Completion (100%)
+    // Stage 6: Completion (100%)
     onProgress?.(100, 'complete', 'Analysis complete!')
     
     return finalResults

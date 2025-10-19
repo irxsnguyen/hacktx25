@@ -17,6 +17,9 @@ export interface SolarResult {
   coordinates: Coordinates
   score: number
   estimatedKwhPerDay: number
+  landPrice?: number        // USD/m² - land price marker
+  powerPerCost?: number     // kWh/$/m² - power per cost efficiency
+  costEfficiency?: number   // normalized cost efficiency (0-1)
 }
 
 export interface AnalysisInputs {
@@ -77,4 +80,11 @@ export interface UIState {
   sidebarCollapsed: boolean
   analysisProgress: AnalysisProgress
   currentAnalysis: SolarAnalysis | null
+}
+
+export interface ExclusionConfig {
+  enabled: boolean
+  bufferMeters: number
+  includeWater: boolean
+  includeSensitive: boolean
 }

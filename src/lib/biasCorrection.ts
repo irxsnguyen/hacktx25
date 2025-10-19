@@ -43,6 +43,10 @@ export interface BiasCorrectionResult {
     intercept: number         // Affine transformation intercept
     correlation: number       // Model-baseline correlation
   }
+  // Additional fields for land price integration
+  kwhPerDay?: number         // Energy output in kWh/day
+  landPrice?: number         // Land price in USD/m²
+  powerPerCost?: number      // Power per cost efficiency
 }
 
 export class BiasCorrectionEngine {
@@ -76,7 +80,7 @@ export class BiasCorrectionEngine {
     azimuth: number,
     config: BiasCorrectionConfig = this.DEFAULT_CONFIG
   ): number {
-    const { lat, lng } = location
+    const { lat: _lat, lng: _lng } = location
     
     // Get month for climatology lookup
     const month = Math.floor(dayOfYear / 30.44) // Approximate month from day of year
@@ -293,7 +297,7 @@ export class BiasCorrectionEngine {
   static applyBiasCorrection(
     rawPOA: number,
     biasFactors: { slope: number; intercept: number; correlation: number },
-    config: BiasCorrectionConfig = this.DEFAULT_CONFIG
+    _config: BiasCorrectionConfig = this.DEFAULT_CONFIG
   ): number {
     const { slope, intercept, correlation } = biasFactors
     
@@ -314,7 +318,7 @@ export class BiasCorrectionEngine {
    * Calculate Relative Potential Score (RPS) for a candidate
    */
   static calculateRPS(
-    rawPOA: number,
+    _rawPOA: number,
     baselinePOA: number,
     correctedPOA: number,
     localPercentile: number,
@@ -367,13 +371,13 @@ export class BiasCorrectionEngine {
     azimuth: number,
     allCandidates: number[],
     biasFactors: { slope: number; intercept: number; correlation: number },
-    config: BiasCorrectionConfig = this.DEFAULT_CONFIG
+    _config: BiasCorrectionConfig = this.DEFAULT_CONFIG
   ): BiasCorrectionResult {
     // Calculate baseline
-    const baselinePOA = this.calculateBaselinePOA(location, dayOfYear, tilt, azimuth, config)
+    const baselinePOA = this.calculateBaselinePOA(location, dayOfYear, tilt, azimuth, _config)
     
     // Apply bias correction
-    const correctedPOA = this.applyBiasCorrection(rawPOA, biasFactors, config)
+    const correctedPOA = this.applyBiasCorrection(rawPOA, biasFactors, _config)
     
     // Calculate clear-sky index
     const clearSkyIndex = baselinePOA > 0 
@@ -389,7 +393,7 @@ export class BiasCorrectionEngine {
       baselinePOA,
       correctedPOA,
       localPercentile,
-      config
+      _config
     )
     
     return {

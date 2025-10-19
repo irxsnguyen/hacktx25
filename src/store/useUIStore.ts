@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { UIState, SolarAnalysis, Coordinates, AnalysisProgress } from '../types'
+import { UIState, SolarAnalysis, Coordinates, AnalysisProgress, ExclusionConfig } from '../types'
 
 interface InputValidation {
   latitude: { isValid: boolean; error?: string }
@@ -19,6 +19,9 @@ interface UIStore extends UIState {
   inputLongitude: number
   inputRadius: number
   inputUrbanPenalty: boolean
+
+  // Exclusion settings
+  exclusionConfig: ExclusionConfig
 
   // Validation state
   validation: InputValidation
@@ -44,6 +47,12 @@ interface UIStore extends UIState {
   // Input actions
   setInputLatitude: (lat: number) => void
   setInputLongitude: (lon: number) => void
+
+  // Exclusion actions
+  setExclusionEnabled: (enabled: boolean) => void
+  setExclusionBuffer: (buffer: number) => void
+  setExclusionIncludeWater: (include: boolean) => void
+  setExclusionIncludeSensitive: (include: boolean) => void
   setInputRadius: (radius: number) => void
   setInputUrbanPenalty: (penalty: boolean) => void
   
@@ -93,6 +102,14 @@ const validateRadius = (value: number): { isValid: boolean; error?: string } => 
           inputLongitude: -97.7431,
           inputRadius: 5,
           inputUrbanPenalty: false,
+
+          // Exclusion config
+          exclusionConfig: {
+            enabled: false,
+            bufferMeters: 50,
+            includeWater: false,
+            includeSensitive: false
+          },
 
           // Validation state
           validation: {
@@ -210,5 +227,30 @@ const validateRadius = (value: number): { isValid: boolean; error?: string } => 
       })
       get().validateInputs()
     }
+  },
+
+  // Exclusion actions
+  setExclusionEnabled: (enabled) => {
+    set(state => ({
+      exclusionConfig: { ...state.exclusionConfig, enabled }
+    }))
+  },
+
+  setExclusionBuffer: (buffer) => {
+    set(state => ({
+      exclusionConfig: { ...state.exclusionConfig, bufferMeters: buffer }
+    }))
+  },
+
+  setExclusionIncludeWater: (include) => {
+    set(state => ({
+      exclusionConfig: { ...state.exclusionConfig, includeWater: include }
+    }))
+  },
+
+  setExclusionIncludeSensitive: (include) => {
+    set(state => ({
+      exclusionConfig: { ...state.exclusionConfig, includeSensitive: include }
+    }))
   }
 }))

@@ -9,7 +9,14 @@ interface SidebarProps {
   onClear: () => void
   isAnalyzing: boolean
   progress: number
-  results?: Array<{ rank: number; coordinates: { lat: number; lng: number }; score: number; kwhPerDay: number }>
+  results?: Array<{ 
+    rank: number; 
+    coordinates: { lat: number; lng: number }; 
+    score: number; 
+    kwhPerDay: number;
+    landPrice?: number;
+    powerPerCost?: number;
+  }>
 }
 
 export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, results }: SidebarProps) {
@@ -23,13 +30,18 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
     isPickingLocation,
     validation,
     analysisProgress,
+    exclusionConfig,
     setInputLatitude,
     setInputLongitude,
     setInputRadius,
     setInputUrbanPenalty,
     setPickingLocation,
     syncInputsToMap,
-    clampInputs
+    clampInputs,
+    setExclusionEnabled,
+    setExclusionBuffer,
+    setExclusionIncludeWater,
+    setExclusionIncludeSensitive
   } = useUIStore()
 
   // Debounced values for syncing to map
@@ -186,6 +198,73 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                 Urban penalty
               </label>
             </div>
+
+            {/* Exclusion Controls */}
+            <div className="border-t border-neutral-200 pt-4">
+              <h3 className="text-sm font-medium text-neutral-700 mb-3">Area Restrictions</h3>
+              
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="excludeResidential"
+                    checked={exclusionConfig.enabled}
+                    onChange={(e) => setExclusionEnabled(e.target.checked)}
+                    className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
+                  />
+                  <label htmlFor="excludeResidential" className="text-sm text-neutral-700">
+                    Exclude Residential Areas (OSM)
+                  </label>
+                </div>
+
+                {exclusionConfig.enabled && (
+                  <div className="ml-7 space-y-3">
+                    <div>
+                      <label className="block text-xs text-neutral-600 mb-1">
+                        Buffer Distance: {exclusionConfig.bufferMeters}m
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        step="10"
+                        value={exclusionConfig.bufferMeters}
+                        onChange={(e) => setExclusionBuffer(Number(e.target.value))}
+                        className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          id="includeWater"
+                          checked={exclusionConfig.includeWater}
+                          onChange={(e) => setExclusionIncludeWater(e.target.checked)}
+                          className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
+                        />
+                        <label htmlFor="includeWater" className="text-xs text-neutral-600">
+                          Include water bodies
+                        </label>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          id="includeSensitive"
+                          checked={exclusionConfig.includeSensitive}
+                          onChange={(e) => setExclusionIncludeSensitive(e.target.checked)}
+                          className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
+                        />
+                        <label htmlFor="includeSensitive" className="text-xs text-neutral-600">
+                          Include sensitive areas
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Controls */}
@@ -249,8 +328,20 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                       </p>
                       <p className="flex items-center space-x-2">
                         <span className="w-2 h-2 bg-earth-400 rounded-full"></span>
-                        <span>Est. {(result.kwhPerDay * 1000).toFixed(0)} Wh/day</span>
+                        <span>Est. {result.kwhPerDay.toFixed(2)} kWh/day</span>
                       </p>
+                      {result.landPrice && (
+                        <p className="flex items-center space-x-2">
+                          <span className="w-2 h-2 bg-sky-400 rounded-full"></span>
+                          <span>Land: ${result.landPrice.toFixed(0)}/m²</span>
+                        </p>
+                      )}
+                      {result.powerPerCost && (
+                        <p className="flex items-center space-x-2">
+                          <span className="w-2 h-2 bg-neutral-500 rounded-full"></span>
+                          <span>Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

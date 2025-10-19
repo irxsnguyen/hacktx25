@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Circle, useMapEvents, Marker, Popup } from 're
 import L from 'leaflet'
 import { useUIStore } from '../store/useUIStore'
 import { Coordinates } from '../types'
+import ExclusionOverlay from './ExclusionOverlay'
 import 'leaflet/dist/leaflet.css'
 
 // Fix for default markers in react-leaflet
@@ -14,7 +15,14 @@ L.Icon.Default.mergeOptions({
 })
 
 interface MapProps {
-  results?: Array<{ coordinates: Coordinates; rank: number; score: number; kwhPerDay: number }>
+  results?: Array<{ 
+    coordinates: Coordinates; 
+    rank: number; 
+    score: number; 
+    kwhPerDay: number;
+    landPrice?: number;
+    powerPerCost?: number;
+  }>
 }
 
 function MapClickHandler() {
@@ -34,7 +42,7 @@ function MapClickHandler() {
 }
 
 export default function Map({ results }: MapProps) {
-  const { mapCenter, mapZoom, radiusKm, isPickingLocation } = useUIStore()
+  const { mapCenter, mapZoom, radiusKm, isPickingLocation, exclusionConfig } = useUIStore()
   const mapRef = useRef<L.Map>(null)
 
   useEffect(() => {
@@ -108,8 +116,18 @@ export default function Map({ results }: MapProps) {
                   Score: {result.score.toFixed(1)}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Est. {(result.kwhPerDay * 1000).toFixed(0)} Wh/day
+                  Est. {result.kwhPerDay.toFixed(2)} kWh/day
                 </p>
+                {result.landPrice && (
+                  <p className="text-sm text-gray-600">
+                    Land: ${result.landPrice.toFixed(0)}/m²
+                  </p>
+                )}
+                {result.powerPerCost && (
+                  <p className="text-sm text-gray-600">
+                    Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²
+                  </p>
+                )}
                 <p className="text-xs text-gray-500">
                   {result.coordinates.lat.toFixed(4)}, {result.coordinates.lng.toFixed(4)}
                 </p>
@@ -117,6 +135,16 @@ export default function Map({ results }: MapProps) {
             </Popup>
           </Marker>
         ))}
+        
+        {/* Exclusion overlay */}
+        <ExclusionOverlay
+          center={mapCenter}
+          radiusKm={radiusKm}
+          enabled={exclusionConfig.enabled}
+          bufferMeters={exclusionConfig.bufferMeters}
+          includeWater={exclusionConfig.includeWater}
+          includeSensitive={exclusionConfig.includeSensitive}
+        />
         
         <MapClickHandler />
       </MapContainer>

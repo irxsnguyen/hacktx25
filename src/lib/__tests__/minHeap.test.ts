@@ -1,8 +1,8 @@
-import { MinHeap, HeapItem } from '../minHeap'
+import { MaxHeap, HeapItem } from '../minHeap'
 
-describe('MinHeap', () => {
+describe('MaxHeap', () => {
   it('should maintain only the best K items', () => {
-    const heap = new MinHeap(3)
+    const heap = new MaxHeap(3)
     
     // Add items with scores: 10, 20, 30, 5, 15, 25
     const items: HeapItem[] = [
@@ -27,37 +27,37 @@ describe('MinHeap', () => {
   })
   
   it('should not add items worse than the worst when full', () => {
-    const heap = new MinHeap(2)
+    const heap = new MaxHeap(2)
     
     // Add two good items
     heap.push({ score: 20, kwhPerDay: 2, coordinates: { lat: 0, lng: 0 } })
     heap.push({ score: 30, kwhPerDay: 3, coordinates: { lat: 1, lng: 1 } })
     
     expect(heap.size()).toBe(2)
-    expect(heap.getMinScore()).toBe(20) // Worst score in heap
+    expect(heap.getWorstScore()).toBe(20) // Worst score in heap
     
     // Try to add a worse item
     heap.push({ score: 10, kwhPerDay: 1, coordinates: { lat: 2, lng: 2 } })
     
     // Should still have only 2 items, and worst should still be 20
     expect(heap.size()).toBe(2)
-    expect(heap.getMinScore()).toBe(20)
+    expect(heap.getWorstScore()).toBe(20)
   })
   
   it('should replace worst item when better item is added', () => {
-    const heap = new MinHeap(2)
+    const heap = new MaxHeap(2)
     
     // Add two items
     heap.push({ score: 20, kwhPerDay: 2, coordinates: { lat: 0, lng: 0 } })
     heap.push({ score: 30, kwhPerDay: 3, coordinates: { lat: 1, lng: 1 } })
     
-    expect(heap.getMinScore()).toBe(20)
+    expect(heap.getWorstScore()).toBe(20)
     
     // Add a better item (should replace the worst)
     heap.push({ score: 25, kwhPerDay: 2.5, coordinates: { lat: 2, lng: 2 } })
     
     // Should still have 2 items, but worst should now be 25
     expect(heap.size()).toBe(2)
-    expect(heap.getMinScore()).toBe(25)
+    expect(heap.getWorstScore()).toBe(25)
   })
 })

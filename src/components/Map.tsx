@@ -108,7 +108,7 @@ export default function Map({ results }: MapProps) {
                   Score: {result.score.toFixed(1)}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Est. {result.kwhPerDay.toFixed(2)} kWh/day
+                  Est. {(result.kwhPerDay * 1000).toFixed(0)} Wh/day
                 </p>
                 <p className="text-xs text-gray-500">
                   {result.coordinates.lat.toFixed(4)}, {result.coordinates.lng.toFixed(4)}

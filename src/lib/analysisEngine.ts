@@ -63,7 +63,8 @@ export class AnalysisEngine {
    */
   static rankTopLocations(
     candidates: SolarCandidate[],
-    config: Partial<AnalysisConfig> = {}
+    config: Partial<AnalysisConfig> = {},
+    center?: Coordinates
   ): SolarCandidate[] {
     const finalConfig = { ...this.DEFAULT_CONFIG, ...config }
     
@@ -75,7 +76,7 @@ export class AnalysisEngine {
     }
     
     // Step 2: Sort by merit with stable tie-breakers
-    const sortedCandidates = this.sortByMerit(validCandidates)
+    const sortedCandidates = this.sortByMerit(validCandidates, center)
     
     // Step 3: Apply minimum spacing constraint
     return this.applySpacingConstraint(sortedCandidates, finalConfig)
@@ -109,39 +110,63 @@ export class AnalysisEngine {
   }
 
   /**
-   * Sorts candidates by merit with stable tie-breakers
+   * Sorts candidates by merit with robust deterministic tie-breakers
    * 
-   * Primary sort: kWh/day (descending)
-   * Tie-breaker 1: Latitude (ascending - prefer southern locations in N hemisphere)
-   * Tie-breaker 2: Longitude (ascending - prefer western locations)
+   * Primary sort: kWh/day (descending) - maximum solar output
+   * Tie-breaker 1: Score (descending) - secondary merit metric
+   * Tie-breaker 2: Distance from center (ascending) - prefer points closer to center
+   * Tie-breaker 3: Latitude (ascending) - prefer southern locations as final tie-breaker
+   * Tie-breaker 4: Longitude (ascending) - prefer western locations
+   * 
+   * This ensures completely deterministic results for identical inputs.
    */
-  private static sortByMerit(candidates: SolarCandidate[]): SolarCandidate[] {
+  private static sortByMerit(candidates: SolarCandidate[], center?: Coordinates): SolarCandidate[] {
     return candidates.sort((a, b) => {
-      // Primary sort: kWh/day (descending)
+      // Primary sort: kWh/day (descending) - maximum solar output
       const kwhDiff = b.kwhPerDay - a.kwhPerDay
-      if (Math.abs(kwhDiff) > 1e-10) { // Use small epsilon for floating point comparison
+      if (Math.abs(kwhDiff) > 1e-12) { // Use smaller epsilon for better precision
         return kwhDiff
       }
       
-      // Tie-breaker 1: Latitude (ascending)
+      // Tie-breaker 1: Score (descending) - secondary merit
+      const scoreDiff = b.score - a.score
+      if (Math.abs(scoreDiff) > 1e-12) {
+        return scoreDiff
+      }
+      
+      // Tie-breaker 2: Distance from center (ascending) - prefer points closer to center
+      if (center) {
+        const distA = this.calculateDistance(center, a.coordinates)
+        const distB = this.calculateDistance(center, b.coordinates)
+        const distDiff = distA - distB
+        if (Math.abs(distDiff) > 1e-12) {
+          return distDiff
+        }
+      }
+      
+      // Tie-breaker 3: Latitude (ascending) - prefer southern locations as final tie-breaker
       const latDiff = a.coordinates.lat - b.coordinates.lat
-      if (Math.abs(latDiff) > 1e-10) {
+      if (Math.abs(latDiff) > 1e-12) {
         return latDiff
       }
       
-      // Tie-breaker 2: Longitude (ascending)
+      // Tie-breaker 4: Longitude (ascending) - prefer western locations
       return a.coordinates.lng - b.coordinates.lng
     })
   }
 
   /**
    * Applies minimum spacing constraint to prevent clustering
+   * 
+   * This ensures the top results are spatially distributed and not clustered
+   * in a single area, providing better coverage of the search region.
    */
   private static applySpacingConstraint(
     sortedCandidates: SolarCandidate[],
     config: AnalysisConfig
   ): SolarCandidate[] {
     const selected: SolarCandidate[] = []
+    const minSpacingKm = config.minSpacingMeters / 1000
     
     for (const candidate of sortedCandidates) {
       if (selected.length >= config.maxResults) {
@@ -149,9 +174,10 @@ export class AnalysisEngine {
       }
       
       // Check if candidate is too close to any already selected
-      const tooClose = selected.some(selectedCandidate => 
-        this.calculateDistance(candidate.coordinates, selectedCandidate.coordinates) < config.minSpacingMeters / 1000
-      )
+      const tooClose = selected.some(selectedCandidate => {
+        const distance = this.calculateDistance(candidate.coordinates, selectedCandidate.coordinates)
+        return distance < minSpacingKm
+      })
       
       if (!tooClose) {
         selected.push(candidate)
@@ -185,18 +211,38 @@ export class AnalysisEngine {
 
   /**
    * Validates analysis results for quality assurance
+   * 
+   * Enhanced validation for the robust hexagonal grid sampling algorithm
    */
   static validateResults(results: SolarCandidate[]): {
     isValid: boolean
     errors: string[]
     warnings: string[]
+    metrics: {
+      totalResults: number
+      averageKwhPerDay: number
+      maxKwhPerDay: number
+      minKwhPerDay: number
+      spatialDistribution: number
+    }
   } {
     const errors: string[] = []
     const warnings: string[] = []
     
     if (results.length === 0) {
       warnings.push('No valid results found')
-      return { isValid: true, errors, warnings }
+      return { 
+        isValid: true, 
+        errors, 
+        warnings,
+        metrics: {
+          totalResults: 0,
+          averageKwhPerDay: 0,
+          maxKwhPerDay: 0,
+          minKwhPerDay: 0,
+          spatialDistribution: 0
+        }
+      }
     }
     
     // Check for duplicate coordinates
@@ -237,10 +283,34 @@ export class AnalysisEngine {
       }
     }
     
+    // Calculate metrics
+    const kwhValues = results.map(r => r.kwhPerDay)
+    const averageKwhPerDay = kwhValues.reduce((sum, val) => sum + val, 0) / kwhValues.length
+    const maxKwhPerDay = Math.max(...kwhValues)
+    const minKwhPerDay = Math.min(...kwhValues)
+    
+    // Calculate spatial distribution (average distance between all pairs)
+    let totalDistance = 0
+    let pairCount = 0
+    for (let i = 0; i < results.length; i++) {
+      for (let j = i + 1; j < results.length; j++) {
+        totalDistance += this.calculateDistance(results[i].coordinates, results[j].coordinates)
+        pairCount++
+      }
+    }
+    const spatialDistribution = pairCount > 0 ? totalDistance / pairCount : 0
+    
     return {
       isValid: errors.length === 0,
       errors,
-      warnings
+      warnings,
+      metrics: {
+        totalResults: results.length,
+        averageKwhPerDay,
+        maxKwhPerDay,
+        minKwhPerDay,
+        spatialDistribution
+      }
     }
   }
 

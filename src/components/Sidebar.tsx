@@ -249,7 +249,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                       </p>
                       <p className="flex items-center space-x-2">
                         <span className="w-2 h-2 bg-earth-400 rounded-full"></span>
-                        <span>Est. {result.kwhPerDay.toFixed(2)} kWh/day</span>
+                        <span>Est. {(result.kwhPerDay * 1000).toFixed(0)} Wh/day</span>
                       </p>
                     </div>
                   </div>

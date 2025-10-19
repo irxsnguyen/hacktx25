@@ -187,7 +187,7 @@ export default function AnalysisView() {
                       </p>
                       <p className="flex items-center space-x-3">
                         <span className="w-2 h-2 bg-sky-500 rounded-full"></span>
-                        <span><span className="font-medium">Avg. kWh/day:</span> {(selectedAnalysis.results.reduce((sum, r) => sum + r.estimatedKwhPerDay, 0) / selectedAnalysis.results.length).toFixed(2)}</span>
+                        <span><span className="font-medium">Avg. Wh/day:</span> {(selectedAnalysis.results.reduce((sum, r) => sum + r.estimatedKwhPerDay, 0) / selectedAnalysis.results.length * 1000).toFixed(0)}</span>
                       </p>
                     </div>
                   </div>
@@ -216,7 +216,7 @@ export default function AnalysisView() {
                                 </p>
                                 <p className="text-sm text-neutral-600 flex items-center space-x-2">
                                   <span className="w-2 h-2 bg-earth-500 rounded-full"></span>
-                                  <span>Est. {result.estimatedKwhPerDay.toFixed(2)} kWh/day</span>
+                                  <span>Est. {(result.estimatedKwhPerDay * 1000).toFixed(0)} Wh/day</span>
                                 </p>
                               </div>
                             </div>

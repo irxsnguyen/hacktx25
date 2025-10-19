@@ -50,10 +50,10 @@ export class LandPriceEstimator {
     apiTimeout: 5000,
     apiRetries: 3,
     syntheticModel: {
-      basePrice: 200,          // $200/m² base price (more realistic)
-      urbanGradient: 0.02,     // 2% decay per km from urban center (much gentler)
-      latitudeAdjustment: 0.01, // 1% adjustment per degree latitude
-      longitudeAdjustment: 0.005 // 0.5% adjustment per degree longitude
+      basePrice: 500,          // $500/m² base price (higher for more realistic range)
+      urbanGradient: 0.005,    // 0.5% decay per km from urban center (much gentler)
+      latitudeAdjustment: 0.02, // 2% adjustment per degree latitude (stronger effect)
+      longitudeAdjustment: 0.01  // 1% adjustment per degree longitude (stronger coastal premium)
     },
     cacheEnabled: true,
     cacheExpiry: 24 // hours
@@ -63,6 +63,7 @@ export class LandPriceEstimator {
   private static urbanCenters: Coordinates[] = [
     { lat: 40.7128, lng: -74.0060 }, // New York
     { lat: 34.0522, lng: -118.2437 }, // Los Angeles
+    { lat: 37.7749, lng: -122.4194 }, // San Francisco
     { lat: 41.8781, lng: -87.6298 }, // Chicago
     { lat: 29.7604, lng: -95.3698 }, // Houston
     { lat: 33.4484, lng: -112.0740 }, // Phoenix
@@ -205,7 +206,7 @@ export class LandPriceEstimator {
     
     // Urban gradient adjustment (much gentler)
     const distanceToUrban = this.getDistanceToNearestUrban(location)
-    const urbanDecay = Math.min(0.8, distanceToUrban * syntheticModel.urbanGradient) // Cap at 80% reduction
+    const urbanDecay = Math.min(0.5, distanceToUrban * syntheticModel.urbanGradient) // Cap at 50% reduction
     price *= (1 - urbanDecay)
     
     // Latitude adjustment (higher prices in temperate zones)
@@ -217,10 +218,10 @@ export class LandPriceEstimator {
     price *= longitudeAdjustment
     
     // Add some randomness for realism
-    price *= (0.8 + Math.random() * 0.4) // ±20% variation
+    price *= (0.9 + Math.random() * 0.2) // ±10% variation (reduced for more consistency)
     
     // Ensure minimum realistic price
-    const minPrice = 50 // $50/m² minimum (much more realistic)
+    const minPrice = 25 // $25/m² minimum (much lower to allow geographic variation)
     
     return {
       location,

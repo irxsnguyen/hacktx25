@@ -346,7 +346,8 @@ export class SolarPotentialAnalyzer {
       const effDerate = panelEfficiency * (1 - temperatureCoeff * (cellTemperature - 25))
       const kwhPerDay = (result.rawPOA * timeIntervalHours * effDerate) / 1000
 
-      const landPrice = landPriceData?.pricePerSquareMeter || 1.0
+      // Use a safer floor to avoid water/invalid parcels skewing ranking
+      const landPrice = Math.max(landPriceData?.pricePerSquareMeter ?? 0, 50)
       const powerPerCost = LandPriceEstimator.calculatePowerPerCost(kwhPerDay, landPrice)
 
       return {

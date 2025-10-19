@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', 'Nunito', 'Poppins', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-sun-gradient text-neutral-700;
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-sun-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-sun-600 hover:shadow-warm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sun-400 focus:ring-offset-2 transform hover:scale-105;
+  }
+  
+  .btn-secondary {
+    @apply bg-earth-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-earth-600 hover:shadow-earth transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-earth-400 focus:ring-offset-2 transform hover:scale-105;
+  }
+  
+  .btn-accent {
+    @apply bg-sky-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-sky-600 hover:shadow-sky transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transform hover:scale-105;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 border border-neutral-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sun-400 focus:border-transparent transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white;
+  }
+  
+  .card {
+    @apply bg-white/90 backdrop-blur-sm rounded-3xl shadow-soft p-6 border border-white/20 hover:shadow-medium transition-all duration-300;
+  }
+  
+  .sidebar {
+    @apply bg-white/95 backdrop-blur-md shadow-warm border-r border-sun-200;
+  }
+  
+  .sun-glow {
+    @apply animate-sun-glow;
+  }
+  
+  .earth-glow {
+    @apply shadow-earth;
+  }
+  
+  .sky-glow {
+    @apply shadow-sky;
+  }
+}

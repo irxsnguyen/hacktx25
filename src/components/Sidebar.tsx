@@ -328,7 +328,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                       </p>
                       <p className="flex items-center space-x-2">
                         <span className="w-2 h-2 bg-earth-400 rounded-full"></span>
-                        <span>Est. {result.kwhPerDay.toFixed(2)} kWh/day</span>
+                        <span>Est. {result.kwhPerDay.toFixed(2)} kWh/m²/day</span>
                       </p>
                       {result.landPrice && (
                         <p className="flex items-center space-x-2">
@@ -339,7 +339,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                       {result.powerPerCost && (
                         <p className="flex items-center space-x-2">
                           <span className="w-2 h-2 bg-neutral-500 rounded-full"></span>
-                          <span>Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²</span>
+                          <span>Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²/day</span>
                         </p>
                       )}
                     </div>

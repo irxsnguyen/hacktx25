@@ -90,7 +90,7 @@ export default function MapView() {
   }, [resetAnalysisProgress, setCurrentAnalysis])
 
   return (
-    <div className="flex h-screen">
+    <div className="flex" style={{ height: 'calc(100vh - 109px)', marginTop: '109px' }}>
       <Sidebar
         onAnalyze={handleAnalyze}
         onClear={handleClear}
@@ -103,7 +103,7 @@ export default function MapView() {
         <Map results={currentResults} />
         
         {isPickingLocation && (
-          <div className="absolute top-4 left-4 right-4 bg-white/95 backdrop-blur-md rounded-3xl p-4 shadow-warm border border-sun-200">
+          <div className="absolute top-4 left-4 right-4 bg-white/95 backdrop-blur-md rounded-xl p-4 shadow-warm border border-sun-200">
             <div className="flex items-center space-x-3 text-sun-600">
               <div className="w-3 h-3 bg-sun-500 rounded-full animate-pulse-slow" />
               <span className="font-medium">Click on the map to set the center point</span>

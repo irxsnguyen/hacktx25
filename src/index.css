@@ -17,23 +17,23 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-sun-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-sun-600 hover:shadow-warm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sun-400 focus:ring-offset-2 transform hover:scale-105;
+    @apply bg-sun-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-sun-600 hover:shadow-warm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sun-400 focus:ring-offset-2 transform hover:scale-105;
   }
   
   .btn-secondary {
-    @apply bg-earth-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-earth-600 hover:shadow-earth transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-earth-400 focus:ring-offset-2 transform hover:scale-105;
+    @apply bg-earth-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-earth-600 hover:shadow-earth transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-earth-400 focus:ring-offset-2 transform hover:scale-105;
   }
   
   .btn-accent {
-    @apply bg-sky-500 text-white px-6 py-3 rounded-2xl font-medium hover:bg-sky-600 hover:shadow-sky transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transform hover:scale-105;
+    @apply bg-sky-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-sky-600 hover:shadow-sky transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 transform hover:scale-105;
   }
   
   .input-field {
-    @apply w-full px-4 py-3 border border-neutral-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sun-400 focus:border-transparent transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white;
+    @apply w-full px-4 py-2 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sun-400 focus:border-transparent transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white;
   }
   
   .card {
-    @apply bg-white/90 backdrop-blur-sm rounded-3xl shadow-soft p-6 border border-white/20 hover:shadow-medium transition-all duration-300;
+    @apply bg-white/90 backdrop-blur-sm rounded-xl shadow-soft p-6 border border-white/20 hover:shadow-medium transition-all duration-300;
   }
   
   .sidebar {
@@ -50,5 +50,44 @@
   
   .sky-glow {
     @apply shadow-sky;
+  }
+  
+  /* Range slider with orange thumb */
+  .range-slider-orange {
+    @apply w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer;
+  }
+  
+  .range-slider-orange::-webkit-slider-thumb {
+    appearance: none;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #FFB347;
+    cursor: pointer;
+    border: 2px solid #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .range-slider-orange::-webkit-slider-thumb:hover {
+    background: #FF8C00;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+  }
+  
+  /* Firefox support */
+  .range-slider-orange::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: #FFB347;
+    cursor: pointer;
+    border: 2px solid #FFFFFF;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+  
+  .range-slider-orange::-moz-range-thumb:hover {
+    background: #FF8C00;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
   }
 }

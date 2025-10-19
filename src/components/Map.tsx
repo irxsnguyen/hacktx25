@@ -44,10 +44,18 @@ function MapClickHandler() {
 export default function Map({ results }: MapProps) {
   const { mapCenter, mapZoom, radiusKm, isPickingLocation, exclusionConfig } = useUIStore()
   const mapRef = useRef<L.Map>(null)
+  const scaleControlAdded = useRef(false)
 
   useEffect(() => {
-    if (mapRef.current) {
+    if (mapRef.current && !scaleControlAdded.current) {
       mapRef.current.invalidateSize()
+      // Add scale control to bottom right
+      L.control.scale({
+        position: 'bottomright',
+        metric: true,
+        imperial: false
+      }).addTo(mapRef.current)
+      scaleControlAdded.current = true
     }
   }, [])
 
@@ -67,7 +75,7 @@ export default function Map({ results }: MapProps) {
         {/* Search radius circle */}
         <Circle
           center={[mapCenter.lat, mapCenter.lng]}
-          radius={radiusKm * 1000} // Convert km to meters
+          radius={radiusKm * 1000} // Convert km to meters and halve the radius
           pathOptions={{
             color: isPickingLocation ? '#80BFFF' : '#FFB347',
             fillColor: isPickingLocation ? '#80BFFF' : '#FFB347',
@@ -76,22 +84,29 @@ export default function Map({ results }: MapProps) {
           }}
         />
         
-        {/* Center marker when picking location */}
-        {isPickingLocation && (
-          <Marker
-            position={[mapCenter.lat, mapCenter.lng]}
-            icon={L.divIcon({
-              className: 'custom-div-icon',
-              html: `
-                <div class="bg-sky-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white animate-pulse">
-                  +
-                </div>
-              `,
-              iconSize: [24, 24],
-              iconAnchor: [12, 12],
-            })}
-          />
-        )}
+        {/* Center marker - always visible */}
+        <Marker
+          position={[mapCenter.lat, mapCenter.lng]}
+          icon={L.divIcon({
+            className: 'custom-div-icon',
+            html: `
+              <div class="bg-sky-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ${isPickingLocation ? 'animate-pulse' : ''}">
+                ${isPickingLocation ? '+' : '⦿'}
+              </div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          })}
+        >
+          <Popup>
+            <div className="p-2">
+              <h3 className="font-bold text-base">Center Location</h3>
+              <p className="text-sm text-gray-600">
+                {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}
+              </p>
+            </div>
+          </Popup>
+        </Marker>
         
         {/* Results markers */}
         {results?.map((result, index) => (

@@ -66,6 +66,7 @@ export class ExclusionMask {
       // Check if point is within any polygon
       for (const polygon of polygons) {
         if (this.pointInPolygon(lat, lng, polygon.geometry)) {
+          console.log(`Point (${lat}, ${lng}) excluded by ${polygon.type} polygon ${polygon.id}`)
           return {
             isExcluded: true,
             reason: `Point is within ${polygon.type} area`,
@@ -164,6 +165,10 @@ export class ExclusionMask {
 
     const tagQuery = tags.map(tag => `["${tag}"]`).join('')
     
+    console.log('Exclusion query tags:', tags)
+    console.log('Include water:', config.includeWater)
+    console.log('Include sensitive:', config.includeSensitive)
+    
     return `
 [out:json][timeout:25];
 (
@@ -182,22 +187,25 @@ out geom;
     config: ExclusionConfig
   ): ExclusionPolygon[] {
     const polygons: ExclusionPolygon[] = []
+    const typeCounts = { residential: 0, water: 0, sensitive: 0, commercial: 0 }
     
     for (const element of data.elements || []) {
       if (element.type === 'way' && element.geometry) {
         const polygon = this.createPolygonFromWay(element, config)
         if (polygon) {
           polygons.push(polygon)
+          typeCounts[polygon.type]++
         }
       } else if (element.type === 'relation' && element.members) {
         const multiPolygon = this.createPolygonFromRelation(element, config)
         if (multiPolygon) {
           polygons.push(multiPolygon)
+          typeCounts[multiPolygon.type]++
         }
       }
     }
 
-    console.log(`Parsed ${polygons.length} exclusion polygons`)
+    console.log(`Parsed ${polygons.length} exclusion polygons:`, typeCounts)
     return polygons
   }
 

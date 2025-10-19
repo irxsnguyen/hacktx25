@@ -21,6 +21,7 @@ A production-ready web application for solar potential analysis that helps users
 - **Storage**: IndexedDB with localStorage fallback
 - **Testing**: Vitest + React Testing Library
 - **Linting**: ESLint + Prettier
+    
 
 ## Getting Started
 

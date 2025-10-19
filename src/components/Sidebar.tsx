@@ -105,16 +105,18 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
       sidebarCollapsed ? 'w-16' : 'w-80'
     }`}>
       {!sidebarCollapsed && (
-        <div className="p-6 h-full flex flex-col">
+        <div className="p-4 h-full flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-sun-gradient rounded-full flex items-center justify-center shadow-warm">
-                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
-                </svg>
+              <div className="w-8 h-8 flex items-center justify-center shadow-warm">
+                <img
+                  className="w-8 h-8 object-contain"
+                  alt="Solarize logo"
+                  src="/images/solarize-mini-logo.png"
+                />
               </div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-sun-600 to-sun-800 bg-clip-text text-transparent">
+              <h2 className="text-xl font-bold text-earth-500">
                 Solar Analysis
               </h2>
             </div>
@@ -128,82 +130,121 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
             </button>
           </div>
 
-          {/* Inputs */}
-          <div className="space-y-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Latitude
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={inputLatitude}
-                onChange={(e) => handleInputChange('latitude', e.target.value)}
-                onBlur={handleInputBlur}
-                className={`input-field ${!validation.latitude.isValid ? 'border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="30.2672"
-              />
-              {!validation.latitude.isValid && (
-                <p className="text-red-500 text-xs mt-1">{validation.latitude.error}</p>
-              )}
+          {/* Input Controls Container - 2/3 height when not expanded */}
+          <div className={`${(!results || results.length === 0) && (!analysisProgress) ? 'max-h-[66%] flex-1' : 'flex-shrink-0'} flex flex-col`}>
+            {/* Inputs */}
+            <div className="space-y-4 mb-6 flex-shrink-0">
+            <div className="flex space-x-2">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={inputLatitude}
+                  onChange={(e) => handleInputChange('latitude', e.target.value)}
+                  onBlur={handleInputBlur}
+                  className={`w-full px-4 py-2 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sun-400 focus:border-transparent transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white ${!validation.latitude.isValid ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="30.2672"
+                />
+                {!validation.latitude.isValid && (
+                  <p className="text-red-500 text-xs mt-1">{validation.latitude.error}</p>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={inputLongitude}
+                  onChange={(e) => handleInputChange('longitude', e.target.value)}
+                  onBlur={handleInputBlur}
+                  className={`w-full px-4 py-2 border border-neutral-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sun-400 focus:border-transparent transition-all duration-300 bg-white/80 backdrop-blur-sm hover:bg-white ${!validation.longitude.isValid ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="-97.7431"
+                />
+                {!validation.longitude.isValid && (
+                  <p className="text-red-500 text-xs mt-1">{validation.longitude.error}</p>
+                )}
+              </div>
             </div>
+
+            <button
+              onClick={handlePickLocation}
+              className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-300 ${
+                isPickingLocation
+                  ? 'bg-sky-100 text-sky-700 border-2 border-sky-400 shadow-sky'
+                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 hover:shadow-soft'
+              }`}
+            >
+              {isPickingLocation ? 'Click on map to set center' : 'Pick on Map'}
+            </button>
 
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Longitude
+                Radius: {inputRadius} km
               </label>
               <input
-                type="number"
-                step="any"
-                value={inputLongitude}
-                onChange={(e) => handleInputChange('longitude', e.target.value)}
-                onBlur={handleInputBlur}
-                className={`input-field ${!validation.longitude.isValid ? 'border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="-97.7431"
-              />
-              {!validation.longitude.isValid && (
-                <p className="text-red-500 text-xs mt-1">{validation.longitude.error}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Radius (km)
-              </label>
-              <input
-                type="number"
+                type="range"
                 step="0.5"
                 min="0.1"
                 max="100"
                 value={inputRadius}
                 onChange={(e) => handleInputChange('radius', e.target.value)}
-                onBlur={handleInputBlur}
-                className={`input-field ${!validation.radius.isValid ? 'border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="5"
+                className="range-slider-orange"
               />
               {!validation.radius.isValid && (
                 <p className="text-red-500 text-xs mt-1">{validation.radius.error}</p>
               )}
             </div>
 
-            <div className="flex items-center space-x-3">
-              <input
-                type="checkbox"
-                id="urbanPenalty"
-                checked={inputUrbanPenalty}
-                onChange={(e) => handleInputChange('urbanPenalty', e.target.checked)}
-                className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
-              />
-              <label htmlFor="urbanPenalty" className="text-sm text-neutral-700">
-                Urban penalty
-              </label>
-            </div>
-
-            {/* Exclusion Controls */}
+            {/* Area Restrictions */}
             <div className="border-t border-neutral-200 pt-4">
               <h3 className="text-sm font-medium text-neutral-700 mb-3">Area Restrictions</h3>
               
               <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="urbanPenalty"
+                    checked={inputUrbanPenalty}
+                    onChange={(e) => handleInputChange('urbanPenalty', e.target.checked)}
+                    className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
+                  />
+                  <label htmlFor="urbanPenalty" className="text-sm text-neutral-700">
+                    Avoid urban areas
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="includeWater"
+                    checked={exclusionConfig.includeWater}
+                    onChange={(e) => setExclusionIncludeWater(e.target.checked)}
+                    className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
+                  />
+                  <label htmlFor="includeWater" className="text-sm text-neutral-700">
+                    Exclude water bodies
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="includeSensitive"
+                    checked={exclusionConfig.includeSensitive}
+                    onChange={(e) => setExclusionIncludeSensitive(e.target.checked)}
+                    className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
+                  />
+                  <label htmlFor="includeSensitive" className="text-sm text-neutral-700">
+                    Exclude sensitive areas
+                  </label>
+                </div>
+
                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
@@ -213,7 +254,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                     className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
                   />
                   <label htmlFor="excludeResidential" className="text-sm text-neutral-700">
-                    Exclude Residential Areas (OSM)
+                    Exclude residential areas
                   </label>
                 </div>
 
@@ -221,7 +262,7 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                   <div className="ml-7 space-y-3">
                     <div>
                       <label className="block text-xs text-neutral-600 mb-1">
-                        Buffer Distance: {exclusionConfig.bufferMeters}m
+                        Buffer Distance: {exclusionConfig.bufferMeters} m
                       </label>
                       <input
                         type="range"
@@ -230,70 +271,34 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
                         step="10"
                         value={exclusionConfig.bufferMeters}
                         onChange={(e) => setExclusionBuffer(Number(e.target.value))}
-                        className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer"
+                        className="range-slider-orange"
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          id="includeWater"
-                          checked={exclusionConfig.includeWater}
-                          onChange={(e) => setExclusionIncludeWater(e.target.checked)}
-                          className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
-                        />
-                        <label htmlFor="includeWater" className="text-xs text-neutral-600">
-                          Include water bodies
-                        </label>
-                      </div>
-
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          id="includeSensitive"
-                          checked={exclusionConfig.includeSensitive}
-                          onChange={(e) => setExclusionIncludeSensitive(e.target.checked)}
-                          className="h-4 w-4 text-sun-500 focus:ring-sun-400 border-neutral-300 rounded"
-                        />
-                        <label htmlFor="includeSensitive" className="text-xs text-neutral-600">
-                          Include sensitive areas
-                        </label>
-                      </div>
                     </div>
                   </div>
                 )}
               </div>
             </div>
-          </div>
+            </div>
 
-          {/* Controls */}
-          <div className="space-y-3 mb-6">
-            <button
-              onClick={handlePickLocation}
-              className={`w-full py-3 px-4 rounded-2xl font-medium transition-all duration-300 ${
-                isPickingLocation
-                  ? 'bg-sky-100 text-sky-700 border-2 border-sky-400 shadow-sky'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 hover:shadow-soft'
-              }`}
-            >
-              {isPickingLocation ? 'Click on map to set center' : 'Pick on Map'}
-            </button>
+            {/* Controls */}
+            <div className="space-y-3 flex-shrink-0">
+            <div className="flex space-x-2">
+              <button
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+              </button>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={isAnalyzing}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isAnalyzing ? 'Analyzing...' : 'Analyze'}
-            </button>
-
-            <button
-              onClick={handleClear}
-              className="btn-secondary w-full"
-            >
-              Clear
-            </button>
+              <button
+                onClick={handleClear}
+                className="btn-secondary flex-1"
+              >
+                Clear
+              </button>
+            </div>
+            </div>
           </div>
 
           {/* Analysis Status Bar */}
@@ -308,11 +313,11 @@ export default function Sidebar({ onAnalyze, onClear, isAnalyzing, progress, res
 
           {/* Results */}
           {results && results.length > 0 && (
-            <div className="flex-1">
+            <div className="flex-1 overflow-hidden flex flex-col">
               <h3 className="text-lg font-semibold bg-gradient-to-r from-sun-600 to-sun-800 bg-clip-text text-transparent mb-4">
                 Top 5 Results
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-3 overflow-y-auto flex-1">
                 {results.map((result) => (
                   <div key={result.rank} className="card hover:shadow-warm transition-all duration-300">
                     <div className="flex items-center justify-between mb-2">

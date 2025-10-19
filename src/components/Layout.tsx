@@ -1,6 +1,5 @@
-import { ReactNode } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import SunLogo from './SunLogo'
 
 interface LayoutProps {
   children: ReactNode
@@ -9,50 +8,71 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const isAnalysisPage = location.pathname === '/analysis'
+  const isMapPage = location.pathname === '/map'
+  const isHomePage = location.pathname === '/'
+
+  // Disable scrolling on map page
+  useEffect(() => {
+    if (isMapPage) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    // Cleanup function to restore scrolling when component unmounts or route changes
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [isMapPage])
 
   return (
     <div className="min-h-screen bg-sun-gradient">
-      {/* Header */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-warm border-b border-sun-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center space-x-3 group">
-                <div className="relative">
-                  <SunLogo size="md" className="group-hover:animate-sun-glow transition-all duration-300" />
-                  <div className="absolute inset-0 bg-sun-400 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
-                </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-sun-600 to-sun-800 bg-clip-text text-transparent">
-                  Solarized
+      {/* Header - don't show on landing page as it has its own */}
+      {!isHomePage && (
+        <header className="fixed w-full top-0 left-0 h-[109px] flex justify-between items-center px-4 lg:px-20 z-50" style={{background: 'linear-gradient(135deg, rgba(255, 251, 240, 0.7) 0%, rgba(255, 228, 179, 0.7) 50%, rgba(255, 179, 71, 0.7) 100%)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)'}}>
+          <img
+            className="w-[172px] h-[69px] aspect-[2.5] object-cover"
+            alt="Solarize logo"
+            src="/images/solarize-logo.png"
+          />
+
+          <nav className="flex items-center gap-2">
+            <Link to="/">
+              <button className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg shadow-lg transition-colors ${
+                isHomePage 
+                  ? 'bg-[#6d4c3d] text-white' 
+                  : 'text-black hover:bg-gray-200'
+              }`}>
+                <span className="font-medium text-sm tracking-normal leading-normal whitespace-nowrap">
+                  Home
                 </span>
-              </Link>
-            </div>
-            
-            <nav className="flex space-x-2">
-              <Link
-                to="/"
-                className={`px-4 py-2 rounded-2xl font-medium transition-all duration-300 ${
-                  !isAnalysisPage
-                    ? 'bg-sun-500 text-white shadow-warm'
-                    : 'text-neutral-600 hover:text-sun-600 hover:bg-sun-100 hover:shadow-soft'
-                }`}
-              >
-                Map
-              </Link>
-              <Link
-                to="/analysis"
-                className={`px-4 py-2 rounded-2xl font-medium transition-all duration-300 ${
-                  isAnalysisPage
-                    ? 'bg-sun-500 text-white shadow-warm'
-                    : 'text-neutral-600 hover:text-sun-600 hover:bg-sun-100 hover:shadow-soft'
-                }`}
-              >
-                Analysis
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+              </button>
+            </Link>
+            <Link to="/map">
+              <button className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg shadow-lg transition-colors ${
+                isMapPage 
+                  ? 'bg-[#6d4c3d] text-white' 
+                  : 'text-black hover:bg-gray-200'
+              }`}>
+                <span className="font-medium text-sm tracking-normal leading-normal whitespace-nowrap">
+                  Map
+                </span>
+              </button>
+            </Link>
+            <Link to="/analysis">
+              <button className={`inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg shadow-lg transition-colors ${
+                isAnalysisPage 
+                  ? 'bg-[#6d4c3d] text-white' 
+                  : 'text-black hover:bg-gray-200'
+              }`}>
+                <span className="font-medium text-sm tracking-normal leading-normal whitespace-nowrap">
+                  Analysis
+                </span>
+              </button>
+            </Link>
+          </nav>
+        </header>
+      )}
 
       {/* Main content */}
       <main className="flex-1">

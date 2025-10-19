@@ -116,7 +116,7 @@ export default function Map({ results }: MapProps) {
                   Score: {result.score.toFixed(1)}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Est. {result.kwhPerDay.toFixed(2)} kWh/day
+                  Est. {result.kwhPerDay.toFixed(2)} kWh/m²/day
                 </p>
                 {result.landPrice && (
                   <p className="text-sm text-gray-600">
@@ -125,7 +125,7 @@ export default function Map({ results }: MapProps) {
                 )}
                 {result.powerPerCost && (
                   <p className="text-sm text-gray-600">
-                    Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²
+                    Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²/day
                   </p>
                 )}
                 <p className="text-xs text-gray-500">

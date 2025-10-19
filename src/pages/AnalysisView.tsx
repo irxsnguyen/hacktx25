@@ -187,7 +187,7 @@ export default function AnalysisView() {
                       </p>
                       <p className="flex items-center space-x-3">
                         <span className="w-2 h-2 bg-sky-500 rounded-full"></span>
-                        <span><span className="font-medium">Avg. kWh/day:</span> {(selectedAnalysis.results.reduce((sum, r) => sum + r.estimatedKwhPerDay, 0) / selectedAnalysis.results.length).toFixed(2)}</span>
+                        <span><span className="font-medium">Avg. kWh/m²/day:</span> {(selectedAnalysis.results.reduce((sum, r) => sum + r.estimatedKwhPerDay, 0) / selectedAnalysis.results.length).toFixed(2)}</span>
                       </p>
                     </div>
                   </div>
@@ -216,7 +216,7 @@ export default function AnalysisView() {
                                 </p>
                                 <p className="text-sm text-neutral-600 flex items-center space-x-2">
                                   <span className="w-2 h-2 bg-earth-500 rounded-full"></span>
-                                  <span>Est. {result.estimatedKwhPerDay.toFixed(2)} kWh/day</span>
+                                  <span>Est. {result.estimatedKwhPerDay.toFixed(2)} kWh/m²/day</span>
                                 </p>
                                 {result.landPrice && (
                                   <p className="text-sm text-neutral-600 flex items-center space-x-2">
@@ -227,7 +227,7 @@ export default function AnalysisView() {
                                 {result.powerPerCost && (
                                   <p className="text-sm text-neutral-600 flex items-center space-x-2">
                                     <span className="w-2 h-2 bg-neutral-500 rounded-full"></span>
-                                    <span>Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²</span>
+                                    <span>Efficiency: {result.powerPerCost.toFixed(3)} kWh/$/m²/day</span>
                                   </p>
                                 )}
                               </div>

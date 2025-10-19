@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Circle, useMapEvents, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Circle, useMapEvents, Marker, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useUIStore } from '../store/useUIStore'
 import { Coordinates } from '../types'
@@ -23,6 +23,11 @@ interface MapProps {
     landPrice?: number;
     powerPerCost?: number;
   }>
+  center?: Coordinates
+  zoom?: number
+  radiusKm?: number
+  showCenterMarker?: boolean
+  showRadius?: boolean
 }
 
 function MapClickHandler() {
@@ -41,21 +46,49 @@ function MapClickHandler() {
   return null
 }
 
-export default function Map({ results }: MapProps) {
-  const { mapCenter, mapZoom, radiusKm, isPickingLocation, exclusionConfig } = useUIStore()
-  const mapRef = useRef<L.Map>(null)
-  const scaleControlAdded = useRef(false)
+function ScaleControl() {
+  const map = useMap()
 
   useEffect(() => {
-    if (mapRef.current && !scaleControlAdded.current) {
-      mapRef.current.invalidateSize()
-      // Add scale control to bottom right
-      L.control.scale({
+    if (map) {
+      const scaleControl = L.control.scale({
         position: 'bottomright',
         metric: true,
-        imperial: false
-      }).addTo(mapRef.current)
-      scaleControlAdded.current = true
+        imperial: false,
+        maxWidth: 200
+      })
+      
+      scaleControl.addTo(map)
+
+      return () => {
+        map.removeControl(scaleControl)
+      }
+    }
+  }, [map])
+
+  return null
+}
+
+export default function Map({ 
+  results, 
+  center, 
+  zoom, 
+  radiusKm: propRadiusKm, 
+  showCenterMarker = true, 
+  showRadius = true 
+}: MapProps) {
+  const { mapCenter: storeMapCenter, mapZoom: storeMapZoom, radiusKm: storeRadiusKm, isPickingLocation, exclusionConfig } = useUIStore()
+  
+  // Use props if provided, otherwise fall back to store values
+  const mapCenter = center || storeMapCenter
+  const mapZoom = zoom || storeMapZoom
+  const radiusKm = propRadiusKm || storeRadiusKm
+  
+  const mapRef = useRef<L.Map>(null)
+
+  useEffect(() => {
+    if (mapRef.current) {
+      mapRef.current.invalidateSize()
     }
   }, [])
 
@@ -73,40 +106,44 @@ export default function Map({ results }: MapProps) {
         />
         
         {/* Search radius circle */}
-        <Circle
-          center={[mapCenter.lat, mapCenter.lng]}
-          radius={radiusKm * 1000} // Convert km to meters and halve the radius
-          pathOptions={{
-            color: isPickingLocation ? '#80BFFF' : '#FFB347',
-            fillColor: isPickingLocation ? '#80BFFF' : '#FFB347',
-            fillOpacity: isPickingLocation ? 0.2 : 0.1,
-            weight: isPickingLocation ? 3 : 2,
-          }}
-        />
+        {showRadius && (
+          <Circle
+            center={[mapCenter.lat, mapCenter.lng]}
+            radius={radiusKm * 1000} // Convert km to meters and halve the radius
+            pathOptions={{
+              color: isPickingLocation ? '#80BFFF' : '#FFB347',
+              fillColor: isPickingLocation ? '#80BFFF' : '#FFB347',
+              fillOpacity: isPickingLocation ? 0.2 : 0.1,
+              weight: isPickingLocation ? 3 : 2,
+            }}
+          />
+        )}
         
-        {/* Center marker - always visible */}
-        <Marker
-          position={[mapCenter.lat, mapCenter.lng]}
-          icon={L.divIcon({
-            className: 'custom-div-icon',
-            html: `
-              <div class="bg-sky-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ${isPickingLocation ? 'animate-pulse' : ''}">
-                ${isPickingLocation ? '+' : '⦿'}
+        {/* Center marker */}
+        {showCenterMarker && (
+          <Marker
+            position={[mapCenter.lat, mapCenter.lng]}
+            icon={L.divIcon({
+              className: 'custom-div-icon',
+              html: `
+                <div class="bg-sky-500 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white ${isPickingLocation ? 'animate-pulse' : ''}">
+                  ${isPickingLocation ? '+' : '⦿'}
+                </div>
+              `,
+              iconSize: [24, 24],
+              iconAnchor: [12, 12],
+            })}
+          >
+            <Popup>
+              <div className="p-2">
+                <h3 className="font-bold text-base">Center Location</h3>
+                <p className="text-sm text-gray-600">
+                  {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}
+                </p>
               </div>
-            `,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
-          })}
-        >
-          <Popup>
-            <div className="p-2">
-              <h3 className="font-bold text-base">Center Location</h3>
-              <p className="text-sm text-gray-600">
-                {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}
-              </p>
-            </div>
-          </Popup>
-        </Marker>
+            </Popup>
+          </Marker>
+        )}
         
         {/* Results markers */}
         {results?.map((result, index) => (
@@ -161,6 +198,7 @@ export default function Map({ results }: MapProps) {
           includeSensitive={exclusionConfig.includeSensitive}
         />
         
+        <ScaleControl />
         <MapClickHandler />
       </MapContainer>
     </div>

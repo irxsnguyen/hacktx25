@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAnalysisStore } from '../store/useAnalysisStore'
 import { SolarAnalysis } from '../types'
+import Map from '../components/Map'
 
 export default function AnalysisView() {
   const { analyses, deleteAnalysis, clearAllAnalyses } = useAnalysisStore()
   const [selectedAnalysis, setSelectedAnalysis] = useState<SolarAnalysis | null>(null)
+  const [showMapModal, setShowMapModal] = useState(false)
 
   const handleDeleteAnalysis = (id: string) => {
     if (confirm('Are you sure you want to delete this analysis?')) {
@@ -45,6 +47,14 @@ export default function AnalysisView() {
     }
   }
 
+  const handleViewOnMap = () => {
+    setShowMapModal(true)
+  }
+
+  const handleCloseMapModal = () => {
+    setShowMapModal(false)
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-[145px]">
       <div className="flex items-center justify-between mb-8">
@@ -69,7 +79,7 @@ export default function AnalysisView() {
 
       {analyses.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-32 h-32 bg-sun-gradient rounded-full flex items-center justify-center mx-auto mb-6 shadow-warm">
+          <div className="w-32 h-32 bg-sun-gradient-orange rounded-full flex items-center justify-center mx-auto mb-6 shadow-warm">
             <svg className="w-16 h-16 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
             </svg>
@@ -88,9 +98,9 @@ export default function AnalysisView() {
               {analyses.map((analysis) => (
                 <div
                   key={analysis.id}
-                  className={`card cursor-pointer transition-all duration-300 ${
+                  className={`bg-white cursor-pointer transition-all duration-300 rounded-xl shadow-soft border border-sun-300 hover:shadow-warm hover:scale-105 p-6 ${
                     selectedAnalysis?.id === analysis.id
-                      ? 'ring-2 ring-sun-400 bg-sun-50 shadow-warm'
+                      ? 'ring-2 ring-sun-400 shadow-warm'
                       : 'hover:shadow-warm hover:scale-105'
                   }`}
                   onClick={() => setSelectedAnalysis(analysis)}
@@ -104,7 +114,7 @@ export default function AnalysisView() {
                         e.stopPropagation()
                         handleDeleteAnalysis(analysis.id)
                       }}
-                      className="text-neutral-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
+                      className="text-neutral-500 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -114,15 +124,15 @@ export default function AnalysisView() {
                   
                   <div className="text-sm text-neutral-600 space-y-2">
                     <p className="flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-sun-400 rounded-full"></span>
+                      <span className="w-2 h-2 bg-sun-500 rounded-full"></span>
                       <span>Center: {analysis.center.lat.toFixed(4)}, {analysis.center.lng.toFixed(4)}</span>
                     </p>
                     <p className="flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-earth-400 rounded-full"></span>
+                      <span className="w-2 h-2 bg-earth-500 rounded-full"></span>
                       <span>Radius: {analysis.radius} km</span>
                     </p>
                     <p className="flex items-center space-x-2">
-                      <span className="w-2 h-2 bg-sky-400 rounded-full"></span>
+                      <span className="w-2 h-2 bg-sky-500 rounded-full"></span>
                       <span>Results: {analysis.results.length} locations</span>
                     </p>
                     <p className="text-xs text-neutral-500 mt-2">
@@ -137,27 +147,22 @@ export default function AnalysisView() {
           {/* Analysis Details */}
           <div className="lg:col-span-2">
             {selectedAnalysis ? (
-              <div className="card">
+              <div className="bg-sun-50 rounded-xl shadow-soft p-6 border border-sun-200 hover:shadow-medium transition-all duration-300">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-3xl font-bold bg-gradient-to-r from-sun-600 to-sun-800 bg-clip-text text-transparent">
                     Analysis Results
                   </h2>
-                  <Link
-                    to="/map"
+                  <button
+                    onClick={handleViewOnMap}
                     className="btn-primary"
-                    state={{ 
-                      center: selectedAnalysis.center,
-                      radius: selectedAnalysis.radius,
-                      results: selectedAnalysis.results
-                    }}
                   >
                     View on Map
-                  </Link>
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                  <div className="bg-sun-50 rounded-xl p-6 border border-sun-200">
-                    <h3 className="font-bold text-sun-800 mb-4 text-lg">Analysis Details</h3>
+                  <div className="bg-earth-50 rounded-xl p-6 border border-earth-200">
+                    <h3 className="font-bold text-earth-800 mb-4 text-lg">Analysis Details</h3>
                     <div className="space-y-3 text-sm text-neutral-700">
                       <p className="flex items-center space-x-3">
                         <span className="w-2 h-2 bg-sun-500 rounded-full"></span>
@@ -199,10 +204,10 @@ export default function AnalysisView() {
                   </h3>
                   <div className="space-y-4">
                     {selectedAnalysis.results.map((result) => (
-                      <div key={result.rank} className="bg-white/90 backdrop-blur-sm border border-sun-200 rounded-xl p-6 hover:shadow-warm transition-all duration-300">
+                      <div key={result.rank} className="bg-white backdrop-blur-sm border border-sun-300 rounded-xl p-6 hover:shadow-warm transition-all duration-300">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-sun-gradient text-white rounded-full flex items-center justify-center font-bold text-lg shadow-warm">
+                            <div className="w-12 h-12 bg-sun-500 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-warm">
                               {result.rank}
                             </div>
                             <div>
@@ -241,7 +246,7 @@ export default function AnalysisView() {
               </div>
             ) : (
               <div className="card text-center py-16">
-                <div className="w-20 h-20 bg-sun-gradient rounded-full flex items-center justify-center mx-auto mb-6 shadow-warm">
+                <div className="w-20 h-20 bg-sun-gradient-orange rounded-full flex items-center justify-center mx-auto mb-6 shadow-warm">
                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
@@ -250,6 +255,53 @@ export default function AnalysisView() {
                 <p className="text-neutral-600 text-lg">Choose an analysis from the list to view detailed results.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Map Modal */}
+      {showMapModal && selectedAnalysis && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={handleCloseMapModal}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-sun-600 to-sun-800 bg-clip-text text-transparent">
+                Analysis Results Map
+              </h2>
+              <button
+                onClick={handleCloseMapModal}
+                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Map Container */}
+            <div className="flex-1 p-6">
+              <Map 
+                center={selectedAnalysis.center}
+                zoom={12}
+                radiusKm={selectedAnalysis.radius}
+                showCenterMarker={true}
+                showRadius={true}
+                results={selectedAnalysis.results.map(result => ({
+                  coordinates: result.coordinates,
+                  rank: result.rank,
+                  score: result.score,
+                  kwhPerDay: result.estimatedKwhPerDay,
+                  landPrice: result.landPrice,
+                  powerPerCost: result.powerPerCost
+                }))}
+              />
+            </div>
           </div>
         </div>
       )}

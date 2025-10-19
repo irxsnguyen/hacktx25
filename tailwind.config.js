@@ -110,6 +110,7 @@ export default {
       },
       backgroundImage: {
         'sun-gradient': 'linear-gradient(135deg, #FFFFFF 0%, #FFFFFF 50%, #FFFFFF 100%)',
+        'sun-gradient-orange': 'linear-gradient(135deg, #FFB347 0%, #FF8C00 50%, #FF6347 100%)',
         'earth-gradient': 'linear-gradient(135deg, #F0F8F0 0%, #CCE6CC 50%, #7FB87F 100%)',
         'sky-gradient': 'linear-gradient(135deg, #F0F8FF 0%, #CCE6FF 50%, #80BFFF 100%)',
       },
